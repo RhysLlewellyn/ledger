@@ -52,7 +52,7 @@ export default async function Home() {
   const data = await summary()
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-24">
+    <>
       <h1 className="text-2xl">Ledger</h1>
       <p className="mt-4 max-w-prose text-sm">
         Subscription billing analytics for an invented SaaS. Four thousand customers, two
@@ -91,6 +91,6 @@ export default async function Home() {
           free tier suspends compute when idle; a refresh usually wakes it.
         </p>
       )}
-    </main>
+    </>
   )
 }

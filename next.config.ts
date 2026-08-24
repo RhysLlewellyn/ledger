@@ -1,6 +1,14 @@
 import type {NextConfig} from 'next'
 
 const nextConfig: NextConfig = {
+  /**
+   * Next writes an AGENTS.md and a CLAUDE.md into the project root on first
+   * run. This repository is a deliverable that people read, and two
+   * auto-generated files addressed to a coding assistant are not part of what
+   * is being delivered.
+   */
+  agentRules: false,
+
   experimental: {
     // The stylesheet is small and the cost of fetching it is the round trip
     // rather than the bytes. Inlining takes it off the critical path.
