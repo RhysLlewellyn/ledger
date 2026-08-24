@@ -10,13 +10,18 @@ Ledger is not a real company and none of the four thousand customers exist. It i
 one of my own demo builds, not client work, and nothing on the site is a photograph
 or a generated image.
 
-Next.js 16 (App Router) · TypeScript · Postgres · Drizzle with migrations checked in
-· Tailwind v4 · Vitest · no charting library.
+Next.js 16 (App Router) · TypeScript · Postgres on Neon · Drizzle with migrations
+checked in · Tailwind v4 · Vitest · **no charting library** and **no client-side
+JavaScript holding any state**.
 
-> **Status: in progress.** The data layer is finished and measured — the sections on
-> query performance below are complete and every number in them was produced by
-> `npm run measure`. The interface, the Lighthouse run and the accessibility pass are
-> the rest of the build, and this notice comes out when they are done.
+![The overview: recurring revenue over 24 months, with net movement beneath it](docs/overview.png)
+
+> **Outstanding:** this has not yet been listened to with NVDA. The keyboard and
+> accessibility-tree sweep is clean across seven pages and axe finds nothing, but a
+> screen reader layers its own behaviour on top of the tree — on the previous build in
+> this portfolio that pass found two defects nothing mechanical had seen. Until it is
+> done, treat the accessibility claim here as "mechanically verified" rather than
+> "tested with a screen reader".
 
 ---
 
@@ -318,6 +323,195 @@ a chart library, because the DOM it produces is not yours.
 
 ---
 
+## Accessible charts
+
+Three charts, and the picture is only one of four things each of them is.
+
+**A `<figcaption>` that states the finding in words.** Not "MRR over time" — that
+is a title, and a title tells you what you are looking at rather than what it says.
+"MRR grew from £818,365 to £3,439,147 over 24 months, and month-on-month growth fell
+from 11.3% to 2.5%" is the finding, and it is the sentence somebody would repeat in a
+meeting. Everybody gets it: the person skimming, the person listening, the person who
+prints the page. Those captions are **computed from the data they describe** rather
+than typed, because a specific caption written once quietly stops being true.
+
+**`role="img"` with an `aria-label` summarising the shape**, and the SVG internals
+`aria-hidden`. Two hundred `<rect>` elements announced one at a time are worse than
+silence.
+
+**The numbers in a real `<table>`**, behind a native `<details>`. This is not a
+fallback. It is a first-class view, it is what a screen reader user will navigate,
+and it is the only way to read an exact value off any chart. A disclosure element is
+keyboard-operable, announces its own expanded state, is findable by find-in-page, and
+needs no JavaScript; a button with `useState` behind it would be more code doing less.
+
+**Greyscale, by construction.** The movement chart stacks five series, and five hues
+fails for one reader in twelve, fails again in print, and fails a third time on a
+projector. Hue is the last of four encodings here and the only one carrying nothing
+on its own: position separates gains from losses above and below a shared zero, length
+is the amount, SVG patterns separate the series — solid, diagonal, dotted, horizontal
+— and the legend carries the same patterns as the bars, so matching a swatch to a
+series never depends on telling two colours apart. Print the page in black and white
+and all of it survives.
+
+The cohort grid is a table outright, with shading on top. A grid is rows, columns and
+one number per cell; expressing it as table markup gets real headers, real navigation,
+find-in-page and text selection for free. Every cell is double-encoded — the
+percentage is printed *and* the background is shaded — because a lightness ramp
+survives greyscale but cannot be read more precisely than "darker than that one".
+
+### Contrast, measured
+
+`npm run contrast` prints all thirteen pairings the interface uses and exits non-zero
+if any falls below its threshold. It found a real failure on its first run, and the
+fix was a distinction rather than a darker grey.
+
+WCAG 1.4.11 asks 3:1 of *user interface components* and of *graphical objects required
+to understand the content* — not of a hairline between two table rows. Holding a
+decorative rule to 3:1 gives a page ruled in mid-grey, which is worse and no more
+accessible. So the lines are split by job: `rule` and `rule-2` separate things and are
+decorative, `field` outlines inputs and buttons at 3.33:1, and the zero baseline on the
+movement chart — which somebody genuinely needs in order to read it — is drawn in ink.
+
+The cohort ramp stops at 70% strength rather than 100%, and that number was measured
+rather than chosen. At full strength the cell colour against the ink is 2.5:1 and
+fails. The usual fix is to flip the text to white past a threshold, but the band around
+75–85% fails *both* ways — 4.0:1 against ink and 4.47:1 against white — so no threshold
+exists. Capping the ramp keeps every cell at 4.88:1 or better and costs only the top of
+a range nobody reads a value off.
+
+### The sweep
+
+`npm run a11y` drives real Chrome over the DevTools protocol, tabs through seven pages
+from the top the way a keyboard user would, and runs axe on each. **Zero axe violations
+across all seven.** It also checks the things this build specifically claims: nine
+tables with captions and scoped headers and no divs pretending to be rows, exactly one
+`aria-sort` per page with the right value, a polite live region carrying the result
+count, both chart SVGs hidden behind a labelled `role="img"`, and the disclosures
+reachable by Tab and toggling on Enter.
+
+It found three defects that reading the code had not.
+
+**The skip link was not moving focus.** `<main>` is not focusable by default, so
+`href="#main"` scrolled the page and left focus at the top of the document — the next
+Tab went back to the second item in the header. It was broken on all seven pages and it
+looked fine every time it was checked by hand, because the page does visibly jump.
+
+**Targets were under the 24×24 that WCAG 2.2 asks for** — nav links, standalone links,
+sort headings and the chart disclosures, all at the text's own height of 18 to 20
+pixels.
+
+**The third was the tool being wrong rather than the page.** It measured the focused
+element's own box, so a checkbox inside its own `<label>` reported as 16px on a row
+that is a 24px click target. 2.5.8 is about the area a pointer can hit, which for that
+markup is the label. The sweep measures the label now, and says when it did.
+
+**Not yet done: listening to it with NVDA.** The sweep reads the accessibility *tree*;
+a screen reader layers its own behaviour on top of that, and this is the one claim in
+this README that a machine cannot close.
+
+---
+
+## The URL is the state
+
+Every filter, every sort and every page lives in the address bar, and one module
+translates between a URL and a query. A filtered view pastes into Slack and opens as
+the same view. The back button walks the filters somebody actually applied. The page
+server-renders because everything it needs arrived with the request. And the CSV export
+is the page's own query string with a different path, so the file and the screen cannot
+disagree about what "the current view" is.
+
+The filter panel is a plain `<form method="get">` whose fields are named exactly what
+the parser reads, so the URL is identical whether it came from the form, from a pasted
+link, or from the back button. There is no client state to fall out of step with the
+address bar, and the whole thing works with JavaScript switched off.
+
+Three rules hold in the parser, each with a test:
+
+**Nothing throws.** These values come from a URL, which means they come from anybody.
+An unrecognised sort column is the default sort, not a 500 and not a redirect. Twelve
+hostile inputs are asserted — `DROP TABLE` as a sort column, a negative page,
+`2025-13-45` as a date, a channel of `telepathy` — and the worst any of them can do is
+show the first page of an unfiltered table.
+
+**Defaults are absent rather than spelled out**, so `/customers` and
+`/customers?page=1&sort=mrr&dir=desc` are the same URL and only one is worth putting in
+front of somebody.
+
+**Changing a filter returns to page one.** Landing on page twelve of three results is
+the oldest bug in faceted search, and the fix lives in the one function every link is
+built from rather than in each caller.
+
+One correction worth recording, because it is the kind that hides: an out-of-range
+money bound was being *discarded*, so asking for a minimum of ten million pounds showed
+every customer while the URL still claimed a filter was applied — the count said one
+filter and the address bar said two. It clamps now. An absurd bound is still a bound
+somebody typed, and the empty state is the true answer to it.
+
+### One thing I could not fix, and how far I got
+
+Because the back button is a primary control here, these pages ought to be in the
+browser's back/forward cache — and they are not. Lighthouse reports it, and the reason
+is `cache-control: no-store`, which every dynamic route gets and which disqualifies a
+page from bfcache outright. `no-cache` would keep the guarantee that matters — never
+serve these without revalidating, because the numbers are live — and drop the one that
+costs bfcache. There is no auth, no personalisation and no cookie on any of these
+pages, so there is nothing here that must not be written to a disk cache.
+
+Three attempts, each of which failed differently and each of which is worth knowing:
+
+1. **A `headers()` entry in `next.config.ts`.** No effect. `headers()` adds headers to
+   a response; the `no-store` on a dynamic route is applied by the framework when it
+   renders, and it wins. The config read correctly and did nothing.
+2. **Middleware rewriting the header on the way out.** This *works* — `npm run build &&
+   npm start` locally serves `private, no-cache, must-revalidate`.
+3. **The same middleware, deployed.** Vercel re-applies `no-store` at the edge for
+   server-rendered functions, so the header the function returns is not the header the
+   browser receives.
+
+So it is a platform boundary rather than an application bug, and the middleware came
+back out rather than shipping as code that works on my machine and is inert in
+production. The alternative — making the pages static with a revalidate window — would
+work, and would cost the claim that every number is computed per request, which is the
+claim the whole performance section rests on. Between a faster back button and a
+performance story that is true, the performance story wins.
+
+---
+
+## What is deliberately missing
+
+**No authentication.** Every page is public. A real billing dashboard is the most
+sensitive screen a company owns and would need sessions, roles, an audit trail of who
+looked at what, and rate limiting. None of that is here, and none of it would have
+demonstrated anything the query plans do not. It is worth being explicit that this is
+an omission rather than an oversight: the data is invented precisely so that leaving
+the door open costs nobody anything.
+
+**No writes.** Nothing in the interface changes a row. The rollup triggers exist and are
+tested against real inserts, so the write path is proven — but no screen exercises it.
+A real product would need optimistic concurrency on the movement spine, and getting that
+wrong on a revenue table is how a number quietly stops reconciling.
+
+**No real-time.** The numbers are as at a fixed date, and the page says so. Streaming
+updates into a dense table is a genuinely hard problem — what happens to your scroll
+position, your sort, your selection — and solving it badly is worse than not solving it.
+
+**No alerting, no multi-tenancy, no settings page, no dark mode.** Multi-tenancy is the
+one I would build first, and it is not a feature: it is a row-level security policy on
+every table and a tenant id in every index in this README, which changes all of the
+performance work above rather than adding to it.
+
+**Date filtering is a plain range picker**, not presets. "Last 90 days" against a report
+with a fixed as-at date would be a lie with a friendly label on it.
+
+**The cohort grid is CPU-bound and I would fix it next.** On Neon it is 83 ms inside
+Postgres against a 100 ms budget — it passes, and it is the thinnest margin in the
+build. The answer is not another index: it is to stop expanding every cohort against
+every month offset in SQL and compute the grid from a single pass over subscription
+intervals.
+
+---
+
 ## Running it
 
 ```bash
@@ -330,11 +524,27 @@ npm run dev                   # http://localhost:3003
 ```
 
 ```bash
-npm test                      # 42 tests; most of them need the database
-npm run measure -- before     # writes docs/measurements/before.md
+npm test                      # 86 tests; most of them need the database
+npm run measure -- before     # query timings and plans -> docs/measurements/
+npm run contrast              # every contrast ratio, exits non-zero on a failure
+npm run a11y                  # keyboard and accessibility-tree sweep, plus axe
+npm run shots                 # regenerates docs/*.png
 ```
 
 The tests that need Postgres skip loudly rather than failing when there is no container
 running, naming what went unproven — and `CI=1` turns the skip off entirely, because on
 a build server an unreachable database is a broken pipeline rather than a local
 convenience.
+
+`a11y` and `shots` need Chrome installed and the server running; take the screenshots
+against `npm run build && npm start` rather than the dev server, or the framework's
+dev-tools badge sits in the corner of every one of them.
+
+---
+
+## Screenshots
+
+| | |
+|---|---|
+| ![The customer table with its filter panel](docs/customers.png) | ![One customer: subscriptions, revenue movements and recent activity](docs/customer-detail.png) |
+| ![Retention by signup month](docs/cohorts.png) | ![The overview at 360 pixels wide](docs/overview-mobile.png) |
