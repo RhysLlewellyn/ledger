@@ -1,3 +1,5 @@
+import {Scroller} from '../scroller.tsx'
+
 /**
  * The wrapper every chart in this product sits inside.
  *
@@ -30,6 +32,7 @@ export function ChartFigure({
   children,
   table,
   tableSummary,
+  tableLabel,
 }: {
   /** The finding, in a sentence. Rendered as the visible caption. */
   caption: React.ReactNode
@@ -41,6 +44,8 @@ export function ChartFigure({
   table: React.ReactNode
   /** One line naming what the table holds, for the disclosure. */
   tableSummary: string
+  /** Names the scrolling region the table sits in. A noun, not a sentence. */
+  tableLabel: string
 }) {
   return (
     <figure className="mt-6">
@@ -67,7 +72,9 @@ export function ChartFigure({
           </span>
           <span className="underline underline-offset-4">{tableSummary}</span>
         </summary>
-        <div className="mt-3 overflow-x-auto">{table}</div>
+        <Scroller label={tableLabel} className="mt-3">
+          {table}
+        </Scroller>
       </details>
     </figure>
   )

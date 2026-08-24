@@ -38,6 +38,8 @@ const mono = IBM_Plex_Mono({
   variable: '--font-mono',
 })
 
+import {SectionNav} from './nav.tsx'
+
 export const metadata: Metadata = {
   title: {default: 'Ledger', template: '%s — Ledger'},
   description:
@@ -45,13 +47,8 @@ export const metadata: Metadata = {
     'retention and four thousand customers, over two complete years.',
 }
 
-const NAV = [
-  {href: '/', label: 'Overview'},
-  {href: '/customers', label: 'Customers'},
-  {href: '/cohorts', label: 'Cohorts'},
-]
-
 export default function RootLayout({children}: {children: React.ReactNode}) {
+
   return (
     <html lang="en-GB" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
       <body>
@@ -73,22 +70,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
             <a href="/" className="inline-block py-1 text-sm tracking-[0.2em] uppercase">
               Ledger
             </a>
-            <nav aria-label="Sections">
-              <ul className="flex gap-6 text-sm">
-                {NAV.map((item) => (
-                  <li key={item.href}>
-                    <a
-                      href={item.href}
-                      // WCAG 2.2 2.5.8 wants 24x24 of target. A nav link at
-                      // the text's own height is 18.
-                      className="inline-block py-1 underline-offset-4 hover:underline"
-                    >
-                      {item.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            <SectionNav />
           </header>
 
           {/*

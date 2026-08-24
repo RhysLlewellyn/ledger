@@ -31,7 +31,7 @@ const AXE = require.resolve('axe-core/axe.min.js')
 const CHROME =
   process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 const PORT = 9226
-const MAX_TABS = 90
+const MAX_TABS = 200
 
 const PAGES = [
   ['overview', '/'],
@@ -115,6 +115,18 @@ async function evaluate(expression) {
   })
   if (exceptionDetails) throw new Error(exceptionDetails.text ?? 'evaluate failed')
   return result.value
+}
+
+/** Resize the emulated viewport. Overrides are lost on navigation, so this is
+ *  re-applied rather than set once. */
+async function setViewport(width, height) {
+  await send('Emulation.setDeviceMetricsOverride', {
+    width,
+    height,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  await new Promise((r) => setTimeout(r, 400))
 }
 
 async function goto(url) {
@@ -254,6 +266,9 @@ const DESCRIBE_FOCUS = String.raw`(() => {
     outline: cs.outlineStyle + ' ' + cs.outlineWidth + ' ' + cs.outlineColor,
     ring: !(cs.outlineStyle === 'none' || cs.outlineWidth === '0px'),
     size: [Math.round(r.width), Math.round(r.height)],
+    // Page coordinates, for the 2.5.8 spacing exception. Viewport-relative
+    // would compare two targets that were never on screen together.
+    centre: [Math.round(r.left + scrollX + r.width / 2), Math.round(r.top + scrollY + r.height / 2)],
     id: el.id || null,
   }
 })()`
@@ -345,8 +360,74 @@ const STRUCTURE = String.raw`(() => {
       header: document.querySelectorAll('body > div > header, body > header').length,
       footer: document.querySelectorAll('footer').length,
     },
-    // A table wider than the viewport must scroll inside its own container.
-    documentScrollsSideways: document.documentElement.scrollWidth > window.innerWidth + 1,
+    /*
+      Content that overflows the viewport and has nowhere to scroll.
+
+      This replaced "documentElement.scrollWidth > innerWidth", which was a
+      check that could not fail. "globals.css" sets "html { overflow-x: clip }",
+      and clip pins scrollWidth to clientWidth by definition -- so the probe
+      reported "no sideways scroll" on all seven pages for as long as it
+      existed, including on a page where three months of both chart axes were
+      being drawn outside the viewport with no way to reach them.
+
+      The real question is not whether the document scrolls. It is whether
+      anything is unreachable: wider than the viewport, and with no ancestor
+      that scrolls. That is what this walks the tree for.
+    */
+    unreachableOverflow: (() => {
+      const scrolls = (el) => {
+        const cs = getComputedStyle(el)
+        return (
+          (cs.overflowX === 'auto' || cs.overflowX === 'scroll') &&
+          el.scrollWidth > el.clientWidth + 1
+        )
+      }
+      const out = []
+      for (const el of document.querySelectorAll('main *')) {
+        const box = el.getBoundingClientRect()
+        if (box.width === 0 || box.right <= window.innerWidth + 1) continue
+        // Only leaves, so a wide table does not report every cell inside it.
+        if (el.querySelector('*')) continue
+        let scroller = null
+        for (let p = el.parentElement; p; p = p.parentElement) {
+          if (scrolls(p)) {
+            scroller = p
+            break
+          }
+        }
+        if (!scroller) {
+          out.push({
+            tag: el.tagName.toLowerCase(),
+            text: (el.textContent || '').trim().slice(0, 40),
+            right: Math.round(box.right),
+            viewport: window.innerWidth,
+          })
+        }
+      }
+      return out.slice(0, 12)
+    })(),
+    /*
+      Scrollable regions a keyboard cannot reach.
+
+      A div with "overflow-x: auto" scrolls with a mouse and not with a
+      keyboard, because Chrome only gives arrow keys to a scroller that can
+      take focus. Five of the six in this build were unreachable and axe was
+      silent, because axe's own rule only fires at a width where the region
+      actually overflows -- and this sweep only ever ran at 1280.
+    */
+    unfocusableScrollers: Array.from(document.querySelectorAll('main *'))
+      .filter((el) => {
+        const cs = getComputedStyle(el)
+        if (cs.overflowX !== 'auto' && cs.overflowX !== 'scroll') return false
+        if (el.scrollWidth <= el.clientWidth + 1) return false
+        if (el.tabIndex >= 0) return false
+        return !el.querySelector('a[href], button, input, select, textarea, [tabindex]')
+      })
+      .map((el) => ({
+        tag: el.tagName.toLowerCase(),
+        label: el.getAttribute('aria-label'),
+        overflowBy: el.scrollWidth - el.clientWidth,
+      })),
     lang: document.documentElement.lang,
     title: document.title,
   }
@@ -361,6 +442,24 @@ for (const [label, path] of PAGES) {
 
   page.headings = await evaluate(HEADINGS)
   page.structure = await evaluate(STRUCTURE)
+
+  /*
+    The same structural probes again at 360.
+
+    Every defect this sweep missed was a defect that only exists at a phone
+    width: a chart axis drawn outside the viewport, six scrollable regions a
+    keyboard could not reach, a caption clipped inside a data scroller. Running
+    only at 1280 is why a clean sheet meant less than it looked like it did.
+  */
+  await evaluate(axeSource + ';0')
+  await setViewport(360, 780)
+  page.narrow = await evaluate(STRUCTURE)
+  page.narrowAxe = await evaluate(
+    'axe.run(document, {resultTypes:["violations"]}).then(r => r.violations.map(v => ' +
+      '({id: v.id, impact: v.impact, nodes: v.nodes.length})))',
+  )
+  await setViewport(1280, 900)
+  await goto(url)
 
   // Skip link. Tab once to reach it, activate it, then check focus actually
   // moved into <main>. A link that only scrolls is the classic failure.
@@ -389,15 +488,44 @@ for (const [label, path] of PAGES) {
   // resets it.
   await goto(url)
   const stops = []
-  const seen = new Set()
+  /*
+    Walk until focus cycles back to the first stop.
+
+    The previous version stopped at the first *repeated* key, which sounds
+    equivalent and is not. `<input type="date">` has three internal segments —
+    day, month, year — and tabbing between them leaves `document.activeElement`
+    on the same input, so the same key comes back three times in a row. That
+    looked like a cycle, so the walk stopped dead at the signup-date field.
+
+    It had therefore never reached the customer table: not one of the fifty row
+    links, not a sort header, not the pager. Thirty of an eventual eighty-odd
+    stops were being measured and reported as the whole tab order, which is
+    worse than not measuring it, because it reads as coverage.
+  */
+  let firstKey = null
+  let previousKey = null
+  let repeats = 0
   for (let i = 0; i < MAX_TABS; i++) {
     await tab()
     const stop = await evaluate(DESCRIBE_FOCUS)
     if (stop.none) break
     Object.assign(stop, {ax: await accessibleName()})
     const key = stop.tag + '|' + stop.href + '|' + stop.name
-    if (seen.has(key) && stops.length > 3) break
-    seen.add(key)
+
+    // Same element again: a composite field moving between its own segments.
+    // Not a new stop and not a cycle, but it cannot go on forever either.
+    if (key === previousKey) {
+      repeats += 1
+      if (repeats > 6) break
+      continue
+    }
+    repeats = 0
+    previousKey = key
+
+    // A real cycle: focus has come back round to where it started.
+    if (firstKey === null) firstKey = key
+    else if (key === firstKey && stops.length > 3) break
+
     stops.push(stop)
   }
 
@@ -407,7 +535,35 @@ for (const [label, path] of PAGES) {
   page.silentStops = stops.filter((s) => !s.ax?.name)
   page.stopsInsideAriaHidden = stops.filter((s) => s.ariaHidden)
   page.stopsWithNoRing = stops.filter((s) => !s.ring)
-  page.targetsUnder24px = stops.filter((s) => s.size[1] > 0 && s.size[1] < 24)
+  /*
+    WCAG 2.5.8 with its spacing exception applied, rather than a bare
+    height < 24 test.
+
+    2.5.8 does not require every target to be 24x24. An undersized target
+    passes if a 24px circle centred on it does not reach another target's
+    circle -- which is to say, if nothing else is close enough to mis-tap.
+
+    Without that, this reported the fifty customer-name links on every run: 18px
+    tall, one per table row, thirty-five pixels apart. They are not a failure
+    and never were, and fifty standing false positives is how a real one gets
+    lost. The row height is what makes them safe, so the check now measures the
+    row height.
+  */
+  const undersized = stops.filter((s) => s.size[1] > 0 && (s.size[1] < 24 || s.size[0] < 24))
+  const centres = stops.filter((s) => s.centre).map((s) => s.centre)
+  page.targetsUnder24px = undersized.filter((s) => {
+    if (!s.centre) return true
+    const near = centres.filter((c) => {
+      const dx = c[0] - s.centre[0]
+      const dy = c[1] - s.centre[1]
+      const d = Math.hypot(dx, dy)
+      return d > 0 && d < 24
+    })
+    return near.length > 0
+  })
+  // Kept separately so the number is still visible rather than silently
+  // absorbed: these are under 24px and pass only on spacing.
+  page.targetsUnder24pxPassingOnSpacing = undersized.length - page.targetsUnder24px.length
   page.order = stops.map((s) => s.ax?.name || '(no accessible name)')
 
   // The chart tables open from the keyboard. A <summary> is focusable and

@@ -522,6 +522,50 @@ element's own box, so a checkbox inside its own `<label>` reported as 16px on a 
 that is a 24px click target. 2.5.8 is about the area a pointer can hit, which for that
 markup is the label. The sweep measures the label now, and says when it did.
 
+### What the sweep was not checking
+
+A later design critique went looking for what a clean sheet across seven pages was
+worth, and the answer was: less than it read like. Four of the sweep's own checks were
+broken, and each of them had been quietly passing.
+
+**It only ever ran at 1280.** Every defect below exists only at a phone width.
+
+**The sideways-scroll check could not fail.** It tested
+`documentElement.scrollWidth > innerWidth`, and `globals.css` sets
+`html { overflow-x: clip }` — which pins `scrollWidth` to `clientWidth` by definition.
+It reported "no sideways scroll" on all seven pages for as long as it existed, while on
+the overview the last three months of *both* chart axes were being drawn outside the
+viewport with no way to reach them. `Feb 2026`, `May 2026` and `Jul 2026` were simply
+invisible on a phone. The check now walks for content wider than the viewport with no
+scrollable ancestor, which is the actual question.
+
+**Six scrollable regions could not be reached by keyboard.** A `div` with
+`overflow-x: auto` scrolls with a mouse and not with a keyboard, because Chrome only
+gives arrow keys to a scroller that can take focus. Five of the six had nothing focusable
+inside them; the sixth — the customer table — escaped by luck, because every row happens
+to contain a link. axe has a rule for this and stayed silent, because the rule only fires
+at a width where the region actually overflows. They share one `Scroller` component now,
+and the sweep has its own probe, because axe still misses the two chart tables: they sit
+inside a closed `<details>`.
+
+**The tab walk stopped at stop 30 of 95.** It broke on the first repeated focus key,
+which sounds like cycle detection and is not: `<input type="date">` has three internal
+segments, and tabbing between them leaves `document.activeElement` on the same input.
+So the walk halted at the signup-date field and had never once reached the customer
+table — not one of the fifty row links, not a sort header, not the pager. It walks until
+focus returns to the *first* stop now.
+
+**And one correction the other way.** With the full tab order finally visible, fifty
+customer-name links reported as 18px targets. They are not a failure: WCAG 2.5.8 exempts
+an undersized target whose 24px circle does not reach another target's, and these are one
+per table row, thirty-five pixels apart. Fifty standing false positives is how a real one
+gets lost, so the check implements the spacing exception and reports the count that passes
+on spacing separately rather than hiding it.
+
+Each of these was verified by putting the defect back and watching the check go red. A
+green check that has never been red is not evidence, which is the whole lesson of this
+section.
+
 ---
 
 ## The screen-reader pass
@@ -604,6 +648,29 @@ navigates without tearing the document down, so there is no page-load announceme
 no live region to fire either. Every link in the build is a plain `<a>` now. There is no
 client state on any of these pages to preserve, so the soft navigation was buying
 nothing and costing that.
+
+### Three more, from the design critique
+
+**The nav never said which page you were on.** `aria-current` appeared zero times in the
+served HTML, and there was no visual current state either, so this failed everybody. The
+section nav is now the build's second client component — the pathname is not available to
+a server layout, which was checked rather than assumed — but `usePathname` resolves during
+server rendering, so `aria-current="page"` and the rule under the current label are both in
+the HTML that arrives. NVDA reads it as *"Overview, same page, link, current page"*.
+
+**The filter form was not a landmark.** A `<form>` only becomes one when it has an
+accessible name, so a screen-reader user could not jump to the filters by rotor — they
+walked down from the "Filters" heading every time, on a page whose entire purpose is
+filtering.
+
+**The title never changed when the results did.** `metadata.title` was the static
+"Customers" for every filtered view, so the first thing announced after submitting a filter
+was the same phrase as before pressing it. It reads `1,085 customers — Ledger` now.
+`generateMetadata` and the page share one set of queries through React's `cache`, keyed on
+the canonical query string — the cache key is the URL, which is what this page claims its
+state is anyway — so the title costs no extra query. It costs no latency either: Next
+streams metadata, and a deliberately delayed `generateMetadata` still returned first bytes
+in 9.9 ms.
 
 Every transcript is in [`docs/nvda/`](docs/nvda), one file per scene, verbatim. They are
 the evidence for everything above, and they are checked in because a claim about a

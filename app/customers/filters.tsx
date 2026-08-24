@@ -39,6 +39,12 @@ export function Filters({
     <form
       method="get"
       action="/customers"
+      // A <form> only becomes a form landmark when it carries an accessible
+      // name. Without one, a screen-reader user cannot jump to the filters by
+      // rotor: they walk down from the "Filters" heading every single time,
+      // past the count and the export link, on a page whose whole point is
+      // filtering.
+      aria-label="Filter customers"
       className="border-t border-(--color-rule-2) pt-4 text-sm"
     >
       <div className="flex items-baseline justify-between gap-4">

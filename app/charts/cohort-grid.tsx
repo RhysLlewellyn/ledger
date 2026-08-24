@@ -1,3 +1,5 @@
+import {Scroller} from '../scroller.tsx'
+
 import {count, month as monthLabel, percent} from '@/format.ts'
 import type {CohortCell} from '@/metrics/cohorts.ts'
 
@@ -48,15 +50,31 @@ export function CohortGrid({
   const offsets = Array.from({length: maxOffset + 1}, (_, i) => i)
 
   return (
-    <div className="mt-6 overflow-x-auto">
+    <div className="mt-6">
+      {/*
+        The explanation sits outside the scroller, not in a <caption> inside
+        it. A caption is part of the table, so it inherited the table's
+        `min-width` and the scroller's clipping: at 360px this paragraph was
+        trapped in the data scroller and cut off mid-sentence at "…who signed
+        up in one m", and the only way to finish reading it was to scroll a
+        retention grid sideways. It is prose; it should wrap like prose.
+
+        The table keeps a name of its own in a short sr-only caption, and
+        `aria-describedby` on the region ties the two back together so nothing
+        is lost for a screen reader by moving it.
+      */}
+      <p id="cohort-note" className="mb-3 max-w-prose text-sm text-(--color-ink-2)">
+        Each row is the customers who signed up in one month; each column is how many of them
+        were still paying that many months later. Month 0 is always 100% by construction. A
+        cell can be <em>higher</em> than the one to its left — that is a reactivation,
+        somebody who cancelled and came back, and a grid that could not show it would be a
+        grid blind to the movement a subscription business most wants to find.
+      </p>
+      <Scroller label="Cohort retention grid" describedBy="cohort-note">
       <table className="border-collapse text-xs">
-        <caption className="mb-3 max-w-prose text-left text-sm text-(--color-ink-2)">
-          Each row is the customers who signed up in one month; each column is how many of
-          them were still paying that many months later. Month 0 is always 100% by
-          construction. A cell can be <em>higher</em> than the one to its left — that is a
-          reactivation, somebody who cancelled and came back, and a grid that could not show
-          it would be a grid blind to the movement a subscription business most wants to
-          find.
+        <caption className="sr-only">
+          Retention by signup month. Each row is a cohort, each column the share of it still
+          paying that many months later.
         </caption>
         <thead>
           <tr>
@@ -123,6 +141,7 @@ export function CohortGrid({
           })}
         </tbody>
       </table>
+      </Scroller>
     </div>
   )
 }

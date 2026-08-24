@@ -24,6 +24,7 @@ import {
 } from '@/metrics/customer-detail.ts'
 import type {Query} from '@/metrics/sql.ts'
 
+import {Scroller} from '../../scroller.tsx'
 import {Unavailable} from '../../unavailable.tsx'
 
 export const dynamic = 'force-dynamic'
@@ -125,7 +126,7 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
           why an account can have several and why only the most recent decides which plan it
           is on.
         </p>
-        <div className="mt-3 overflow-x-auto">
+        <Scroller label="Subscriptions table" className="mt-3">
           <table className="w-full min-w-[40rem] border-collapse text-sm">
             <caption className="sr-only">
               Every subscription this customer has held, most recent first.
@@ -167,7 +168,7 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
               ))}
             </tbody>
           </table>
-        </div>
+        </Scroller>
       </section>
 
       <section className="mt-10">
@@ -177,7 +178,7 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
           one. The last figure in the running column is the current MRR above — the headline
           reconciles to the history by inspection rather than by trust.
         </p>
-        <div className="mt-3 overflow-x-auto">
+        <Scroller label="Revenue movements table" className="mt-3">
           <table className="w-full min-w-[36rem] border-collapse text-sm">
             <caption className="sr-only">
               Revenue movements, most recent first, with the running balance after each.
@@ -212,7 +213,7 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
               ))}
             </tbody>
           </table>
-        </div>
+        </Scroller>
       </section>
 
       <section className="mt-10">
@@ -230,7 +231,7 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
             No activity recorded inside the report window.
           </p>
         ) : (
-          <div className="mt-3 overflow-x-auto">
+          <Scroller label="Recent activity table" className="mt-3">
             <table className="w-full min-w-[36rem] border-collapse text-sm">
               <caption className="sr-only">
                 The {FEED_LIMIT} most recent events for this customer.
@@ -254,7 +255,7 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
                 ))}
               </tbody>
             </table>
-          </div>
+          </Scroller>
         )}
       </section>
     </>

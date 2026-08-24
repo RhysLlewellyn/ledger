@@ -78,6 +78,7 @@ export function MrrChart({months}: {months: readonly MrrMonth[]}) {
         </>
       }
       tableSummary={`View the ${months.length} monthly figures as a table`}
+      tableLabel="Monthly figures table"
       table={<MrrTable months={months} />}
     >
       <Plot width={W} height={LINE_H} className="h-[200px]">
@@ -149,13 +150,31 @@ export function MrrChart({months}: {months: readonly MrrMonth[]}) {
         })}
       </Plot>
 
+      {/*
+        Every third month above 640px, every sixth below it.
+
+        The plot is `w-full` and never scrolls, so these labels have to fit
+        rather than overflow — and thinning to every third was measured and
+        found not to be enough. At 360px the nine remaining labels are 494px of
+        content in a 297px box, and because `html` sets `overflow-x: clip` the
+        overflow does not even become a scrollbar: the last three months are
+        drawn outside the viewport with no way to reach them. Feb, May and Jul
+        2026 were simply invisible on a phone, on both charts, and no automated
+        check saw it because nothing scrolled.
+
+        Hiding rather than re-rendering keeps one list in the DOM, so the
+        table behind the disclosure and a screen reader still get every month.
+      */}
       <ol className="mt-1 flex list-none justify-between text-xs text-(--color-muted)">
         {months.map((m, i) =>
-          // Every third month. Twenty-four labels do not fit at 360px and
-          // rotating them to make them fit produces a chart nobody tilts their
-          // head to read.
           i % 3 === 0 || i === months.length - 1 ? (
-            <li key={m.month} data-numeric className="whitespace-nowrap">
+            <li
+              key={m.month}
+              data-numeric
+              className={`whitespace-nowrap ${
+                i % 6 === 0 || i === months.length - 1 ? '' : 'hidden sm:block'
+              }`}
+            >
               {monthLabel(m.month)}
             </li>
           ) : null,
