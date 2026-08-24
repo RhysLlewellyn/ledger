@@ -4,7 +4,7 @@ A subscription billing analytics dashboard for an invented SaaS. Four thousand
 customers, two complete years of billing history, a quarter of a million product
 events — and the point of it is that a data-dense interface stays fast and stays
 usable at that volume. Every dashboard query is under 100 ms at p95 against the
-deployed database, Lighthouse is 97+ on all five categories with CLS at 0, and axe
+deployed database, Lighthouse is 98+ on all five categories with CLS at 0, and axe
 finds nothing across seven pages.
 
 **Live:** https://ledger-beta-wheat.vercel.app
@@ -30,13 +30,14 @@ JavaScript holding any state**.
 
 ## Lighthouse
 
-Lighthouse 13.4.1, mobile preset, run against the deployed URL rather than a local
-build. Median of five runs per page.
+Lighthouse 13.4.1 with its default mobile emulation, run against the deployed URL rather
+than a local build. Median of five runs per page, re-measured after the screen-reader
+pass changed the markup.
 
 | | Performance | Accessibility | Best practices | SEO | Agentic Browsing |
 |---|---|---|---|---|---|
 | `/` — the overview | **99** | **100** | **100** | **100** | **100** |
-| `/customers` — 4,000 rows, filtered | **97** | **100** | **100** | **100** | **100** |
+| `/customers` — 4,000 rows, filtered | **99** | **100** | **100** | **100** | **100** |
 | `/cohorts` — the retention grid | **98** | **100** | **100** | **100** | **100** |
 
 **CLS is 0 on all three**, which is the number a layout change is most likely to cost
@@ -44,15 +45,21 @@ you and the one I check first. It is also the number three self-hosted webfonts 
 likely to cost you, and it is zero because `next/font` generates a metric-matched
 fallback — the type does not move when the real face arrives.
 
-TTFB is 12–15 ms and TBT is 32–50 ms. LCP is 2.1–2.2 s, and essentially all of that is
+TTFB is 13–14 ms and TBT is 17–34 ms. LCP is 2.0–2.2 s, and essentially all of that is
 render delay under Lighthouse's simulated mobile throttling rather than the server:
 every one of these pages is rendered per request against Postgres in London, and the
 document arrives in about fifteen milliseconds.
 
 Five runs rather than three because performance is the category that will not sit still.
-The overview scored 100, 97, 97, 99, 99 across those five. Quoting the 100 would have
+The overview scored 100, 99, 99, 99, 99 across those five. Quoting the 100 would have
 been the easier thing to do and it would have been a screenshot rather than a
 measurement.
+
+`/customers` was 97 before the screen-reader pass and is 99 after it. That is not a
+performance optimisation: replacing `next/link` with plain anchors was done because a
+client-side navigation announces nothing to a screen reader, and dropping the client
+router took total blocking time down with it. Worth recording because it usually runs
+the other way, and "accessible" gets argued about as though it costs something.
 
 **These were taken warm.** Neon's free tier suspends compute after five minutes idle, so
 a genuinely cold first request pays several hundred milliseconds before Postgres answers
