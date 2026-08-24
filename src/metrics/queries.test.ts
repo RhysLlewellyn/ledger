@@ -5,6 +5,7 @@ import {AS_AT, WINDOW_START} from '../db/generate.ts'
 import {refreshRollup} from '../db/rollup.ts'
 import {probeDatabase, skipWithoutDatabase, testDatabaseUrl} from '../db/testing.ts'
 import {cohortRetention, type CohortCell} from './cohorts.ts'
+import {customerMovements, type MovementRow} from './customer-detail.ts'
 import {customerTable, type CustomerQueryOptions, type CustomerRow} from './customers.ts'
 import {customerExport} from './export.ts'
 import {mrrSeriesFromMovements, mrrSeriesFromRollup, type MrrPoint} from './mrr-series.ts'
@@ -366,5 +367,50 @@ describe.skipIf(skip)('the export and the table describe the same customers', ()
 
     expect(everyone).toBeGreaterThan(0)
     expect(matched).toBeLessThan(everyone)
+  })
+})
+
+describe.skipIf(skip)('the statement foots', () => {
+  /*
+    The customer page prints a debit total, a credit total and a closing
+    balance under a double rule, and claims the third is the second minus the
+    first. That claim is the whole reason the section is drawn as a ledger
+    rather than as a list, so it is worth more than an assertion in a comment.
+
+    It also checks the running balance, which comes from a window function in
+    SQL, against a plain accumulation in JavaScript. Two ways of computing the
+    same column, which is this file's habit.
+  */
+  it('reconciles debits, credits and the closing balance for every busy account', async () => {
+    const busiest = await run<{id: string; n: number}>({
+      name: 'test-busiest-customers',
+      params: [],
+      text: `select customer_id as id, count(*)::int as n
+             from mrr_movement group by customer_id
+             order by n desc limit 25`,
+    })
+    expect(busiest.length).toBe(25)
+
+    for (const {id} of busiest) {
+      const rows = await run<MovementRow>(customerMovements(id))
+      expect(rows.length).toBeGreaterThan(0)
+
+      // Oldest first, because a statement accumulates downward.
+      const days = rows.map((r) => r.occurred_on)
+      expect([...days].sort()).toEqual(days)
+
+      const debits = rows.reduce((n, r) => (r.amount_pence < 0 ? n - r.amount_pence : n), 0)
+      const credits = rows.reduce((n, r) => (r.amount_pence > 0 ? n + r.amount_pence : n), 0)
+      const closing = Number(rows[rows.length - 1]!.running_pence)
+
+      expect(credits - debits).toBe(closing)
+
+      // And the window function agrees with accumulating by hand, row by row.
+      let balance = 0
+      for (const row of rows) {
+        balance += row.amount_pence
+        expect(Number(row.running_pence)).toBe(balance)
+      }
+    }
   })
 })

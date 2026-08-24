@@ -132,7 +132,12 @@ export function customerMovements(customerId: string): Query {
         )::bigint as running_pence
       from mrr_movement m
       where m.customer_id = ${id}::uuid
-      order by m.occurred_on desc, m.id desc
+      -- Oldest first. This is read as a statement, and a statement accumulates
+      -- downward to a closing balance; newest-first would put the running
+      -- total in reverse and leave the figure that matters at the top with
+      -- nothing above it to have produced it. Ten movements is the most any
+      -- customer has, so there is no length argument for the other order.
+      order by m.occurred_on, m.id
     `,
   }
 }

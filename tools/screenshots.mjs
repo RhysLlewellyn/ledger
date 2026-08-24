@@ -33,7 +33,7 @@ const SHOTS = [
   ['overview', '/', 1280, 1100],
   ['customers', '/customers', 1280, 1100],
   ['customers-filtered', '/customers?country=GB&status=active&plan=enterprise&sort=mrr', 1280, 900],
-  ['customer-detail', '/customers/ardent-analytics-ab', 1280, 1000],
+  ['customer-detail', '/customers/ardent-bindery-llp', 1280, 1100],
   ['cohorts', '/cohorts', 1280, 1000],
   ['overview-mobile', '/', 360, 900],
   ['customers-mobile', '/customers', 360, 900],

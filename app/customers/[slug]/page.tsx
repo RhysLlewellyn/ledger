@@ -109,6 +109,18 @@ export default async function CustomerPage({
 
   const churned = customer.churned_at !== null
 
+  /*
+    The statement's foot, added up here rather than in SQL.
+
+    Ten rows is the most any customer has. A second query, or a second pass in
+    Postgres, to sum ten numbers that are already in memory would be ceremony —
+    and this way the total is visibly derived from the rows on screen, which is
+    the property the whole section is claiming.
+  */
+  const debits = movements.reduce((n, m) => (m.amount_pence < 0 ? n - m.amount_pence : n), 0)
+  const credits = movements.reduce((n, m) => (m.amount_pence > 0 ? n + m.amount_pence : n), 0)
+  const closing = credits - debits
+
   return (
     <>
       <p className="text-sm">
@@ -201,40 +213,67 @@ export default async function CustomerPage({
         </Scroller>
       </section>
 
+      {/*
+        The statement.
+
+        This was three consecutive tables in identical treatment, and the
+        middle one — the money — was a Change column of signed amounts read
+        newest-first. The product is called Ledger and had never once drawn
+        one, which is the largest thing a design critique found in it.
+
+        A ledger has facing columns, a foot that adds up, and a double rule
+        under the closing balance. All three are here, and none of them are
+        decoration: the two columns separate what took revenue away from what
+        added it without needing colour to do it, the foot is a sum somebody
+        can check against the balance by eye, and the double rule is what an
+        accountant's page uses to say "this figure is final".
+
+        Debit and credit are the right way round for a revenue account, where
+        an increase is a credit. That is not common knowledge, so the standfirst
+        says it rather than leaving the reader to work out which column is
+        which.
+      */}
       <section className="mt-10">
-        <h2 className="text-lg">Revenue movements</h2>
+        <h2 className="text-lg">Statement</h2>
         <p className="mt-1 max-w-prose text-sm text-(--color-ink-2)">
-          Every change to this account&rsquo;s recurring revenue, with the balance after each
-          one. The last figure in the running column is the current MRR above — the headline
-          reconciles to the history by inspection rather than by trust.
+          Every change to this account&rsquo;s recurring revenue, oldest first, adding up to
+          the balance it carries today. Recurring revenue is a revenue account, so an
+          increase is a <strong>credit</strong> and a reduction is a <strong>debit</strong>.
+          The closing balance is the current MRR at the top of this page — the headline
+          reconciles to its own history by inspection rather than by trust.
         </p>
-        <Scroller label="Revenue movements table" className="mt-3">
+        <Scroller label="Statement of revenue movements" className="mt-3">
           <table className="w-full min-w-[36rem] border-collapse text-sm">
             <caption className="sr-only">
-              Revenue movements, most recent first, with the running balance after each.
+              Statement of revenue movements, oldest first, with debits, credits and the
+              balance after each, footed with the totals and the closing balance.
             </caption>
             <thead>
               <tr>
                 <Th>Date</Th>
-                <Th>Kind</Th>
-                <Th numeric>Change</Th>
-                <Th numeric>Running MRR</Th>
+                <Th>Movement</Th>
+                <Th numeric>Debit</Th>
+                <Th numeric>Credit</Th>
+                <Th numeric>Balance</Th>
               </tr>
             </thead>
             <tbody>
               {movements.map((row) => (
                 <tr key={row.id} className="border-b border-(--color-rule)">
-                  <th scope="row" className="py-2 pr-4 text-left font-normal">
+                  <th scope="row" className="py-2 pr-4 text-left font-normal whitespace-nowrap">
                     <span data-numeric>{day(row.occurred_on)}</span>
                   </th>
                   <td className="py-2 pr-4">{humanise(row.kind)}</td>
-                  <td
-                    data-numeric
-                    className={`py-2 pr-4 text-right ${
-                      row.amount_pence < 0 ? 'text-(--color-data-neg)' : ''
-                    }`}
-                  >
-                    {movement(row.amount_pence)}
+                  {/*
+                    An empty cell rather than a zero. A ledger leaves the column
+                    that did not move blank, and printing 0.00 in it would make
+                    every row look like two entries instead of one.
+                  */}
+                  <td data-numeric className="py-2 pr-4 text-right">
+                    {row.amount_pence < 0 ? moneyExact(Math.abs(row.amount_pence)) : ''}
+                  </td>
+                  <td data-numeric className="py-2 pr-4 text-right">
+                    {row.amount_pence > 0 ? moneyExact(row.amount_pence) : ''}
                   </td>
                   <td data-numeric className="py-2 text-right">
                     {moneyExact(row.running_pence)}
@@ -242,6 +281,33 @@ export default async function CustomerPage({
                 </tr>
               ))}
             </tbody>
+            {/*
+              A real <tfoot>, so it is announced as one and stays with the
+              table when the columns scroll.
+
+              Single rule above, double rule below, which is the way round an
+              accountant writes it: the line above means "these are being added
+              up", and the double line beneath means the figure is final. CSS
+              has had `border-style: double` since the beginning and almost
+              nothing uses it; at 3px it renders as exactly what it is, two
+              hairlines with a gap.
+            */}
+            <tfoot>
+              <tr className="border-t border-(--color-ink) [border-bottom:3px_double_var(--color-ink)]">
+                <th scope="row" colSpan={2} className="py-2 pr-4 text-left font-normal">
+                  Carried forward
+                </th>
+                <td data-numeric className="py-2 pr-4 text-right">
+                  {debits > 0 ? moneyExact(debits) : ''}
+                </td>
+                <td data-numeric className="py-2 pr-4 text-right">
+                  {credits > 0 ? moneyExact(credits) : ''}
+                </td>
+                <td data-numeric className="py-2 text-right">
+                  {moneyExact(closing)}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </Scroller>
       </section>

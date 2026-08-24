@@ -802,6 +802,50 @@ performance story that is true, the performance story wins.
 
 ---
 
+## The statement
+
+A design critique put it plainly: **the product is called Ledger and had never once drawn
+one.** The customer page was three consecutive tables in identical treatment, and the
+middle one — the money — was a `Change` column of signed amounts read newest-first. Every
+ingredient of a ledger was already in the data and none of it was on the page.
+
+It is a statement now. Facing debit and credit columns, oldest first, a running balance,
+and the accountant's rules at the foot: a single line above the total meaning *these are
+being added up*, and a double line beneath meaning *this figure is final*. CSS has had
+`border-style: double` since the beginning and almost nothing uses it; at 3px it renders
+as exactly what it is, two hairlines with a gap.
+
+None of it is costume. The two columns separate what took revenue away from what added it
+**without needing colour to do it**, which matters in a build where colour is reserved for
+data marks and every chart has to survive greyscale. The empty cell in the column that did
+not move is the ledger's own convention and reads better than printing `£0.00` twice on
+every row. And the foot is a sum somebody can check by eye:
+
+```
+Carried forward        £19.00      £199.00      £180.00
+                       debits      credits      closing
+```
+
+£199.00 − £19.00 = £180.00, which is the **Current MRR** printed at the top of the same
+page. The headline reconciles to its own history by inspection rather than by trust —
+which the previous version claimed in a sentence and this one demonstrates in a shape.
+
+Debit and credit are the right way round for a revenue account, where an increase is a
+credit. That is not common knowledge, so the standfirst says so rather than leaving the
+reader to work out which column is which.
+
+The ordering changed with it. A statement accumulates downward, so the movements come back
+oldest-first; newest-first would run the balance in reverse and leave the figure that
+matters at the top with nothing above it to have produced it. Ten movements is the most any
+customer in the dataset has, so there was never a length argument for the other order.
+
+A test walks the twenty-five busiest accounts and asserts three things: that the rows come
+back in date order, that credits minus debits equals the closing balance, and that the
+running balance from Postgres's window function agrees with accumulating the same rows by
+hand in JavaScript.
+
+---
+
 ## What is deliberately missing
 
 **No authentication.** Every page is public. A real billing dashboard is the most
@@ -848,7 +892,7 @@ npm run dev                   # http://localhost:3003
 ```
 
 ```bash
-npm test                      # 100 tests; most of them need the database
+npm test                      # 101 tests; most of them need the database
 npm run measure -- before     # query timings and plans -> docs/measurements/
 npm run contrast              # every contrast ratio, exits non-zero on a failure
 npm run a11y                  # keyboard and accessibility-tree sweep, plus axe
