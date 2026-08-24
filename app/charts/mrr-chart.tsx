@@ -114,7 +114,7 @@ export function MrrChart({months}: {months: readonly MrrMonth[]}) {
           <li
             key={tick}
             data-numeric
-            className="absolute left-0 -translate-y-1/2 bg-(--color-paper) pr-1"
+            className="absolute left-0 -translate-y-1/2 bg-(--color-paper) py-0.5 pr-2"
             style={{top: `${(y(tick) / LINE_H) * 100}%`}}
           >
             {money(tick)}
@@ -122,7 +122,13 @@ export function MrrChart({months}: {months: readonly MrrMonth[]}) {
         ))}
       </ul>
 
-      <Plot width={W} height={BAR_H} className="mt-2 h-[90px]">
+      {/*
+        Six units of air, not two. The line plot's bottom tick and the bar
+        plot's top tick are different scales reading different things, and at
+        two units apart they printed on top of each other -- "£0" struck
+        through by "+£200,000". The gap is what says these are two plots.
+      */}
+      <Plot width={W} height={BAR_H} className="mt-6 h-[90px]">
         <line
           x1={0}
           x2={W}
@@ -165,6 +171,34 @@ export function MrrChart({months}: {months: readonly MrrMonth[]}) {
         Hiding rather than re-rendering keeps one list in the DOM, so the
         table behind the disclosure and a screen reader still get every month.
       */}
+      {/*
+        The bar plot's own scale.
+
+        It had none. The £4m…£0 labels beside the plot above belong to the
+        line, and the bars sit directly beneath them — so a reader could not
+        tell whether a bar was twenty thousand or two hundred, and the bars
+        appeared to hang below a "£0" that was not theirs. Two ticks fix both:
+        the top of the range says how big the tallest month is, and a zero on
+        the axis the bars are actually measured against says which line they
+        are standing on.
+
+        The domain is symmetric around zero so that a negative month would be
+        drawn downward at the same scale. Every month in this dataset is
+        positive, which the caption says; the axis does not assume it.
+      */}
+      <ul className="relative -mt-[90px] h-[90px] list-none text-xs text-(--color-muted)">
+        {[netTop, 0].map((tick) => (
+          <li
+            key={tick}
+            data-numeric
+            className="absolute left-0 -translate-y-1/2 bg-(--color-paper) py-0.5 pr-2"
+            style={{top: `${(barY(tick) / BAR_H) * 100}%`}}
+          >
+            {tick === 0 ? '£0' : `+${money(tick)}`}
+          </li>
+        ))}
+      </ul>
+
       <ol className="mt-1 flex list-none justify-between text-xs text-(--color-muted)">
         {months.map((m, i) =>
           i % 3 === 0 || i === months.length - 1 ? (

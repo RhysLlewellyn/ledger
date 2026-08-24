@@ -1,6 +1,6 @@
 import {count, country as countryName, humanise, isoDay} from '@/format.ts'
 import type {CustomerQueryOptions} from '@/metrics/customers.ts'
-import type {CountryFacet, PlanFacet} from '@/metrics/facets.ts'
+import type {CountryFacet, FacetCount, PlanFacet} from '@/metrics/facets.ts'
 import {
   activeFilterCount,
   CHANNELS,
@@ -32,14 +32,28 @@ export function Filters({
   options,
   plans,
   countries,
+  counts,
   bounds,
 }: {
   options: CustomerQueryOptions
   plans: readonly PlanFacet[]
   countries: readonly CountryFacet[]
+  counts: readonly FacetCount[]
   bounds: {first_day: string; last_day: string}
 }) {
   const applied = activeFilterCount(options)
+
+  /*
+    Counts, keyed by dimension and value.
+
+    They are conditional now — each option is counted against everything else
+    currently applied, minus its own dimension — so the panel can no longer
+    offer "Enterprise 372" beside a result line reading "117 customers match".
+    An option nobody can reach reports 0 rather than disappearing: removing it
+    would hide the fact that the filter exists at all.
+  */
+  const tally = new Map(counts.map((c) => [`${c.dim}:${c.key}`, c.customers]))
+  const at = (dim: string, key: string) => tally.get(`${dim}:${key}`) ?? 0
 
   return (
     <form
@@ -64,6 +78,14 @@ export function Filters({
           </a>
         )}
       </div>
+
+      {applied > 0 && (
+        // Said once, here, rather than repeated beside twenty-three numbers.
+        <p className="mt-2 max-w-prose text-(--color-muted)">
+          Each count is how many customers that option would match alongside the filters
+          already applied, ignoring the others in its own group.
+        </p>
+      )}
 
       <input type="hidden" name="sort" value={options.sort} />
       <input type="hidden" name="dir" value={options.direction} />
@@ -117,7 +139,7 @@ export function Filters({
             // customers are still on it and a filter that cannot reach them
             // would leave them in the totals and nowhere else.
             label: p.active ? p.name : `${p.name} · retired`,
-            hint: p.customers,
+            hint: at('plan', p.slug),
           }))}
         />
 
@@ -125,14 +147,18 @@ export function Filters({
           legend="Status"
           name="status"
           selected={options.statuses ?? []}
-          items={STATUSES.map((s) => ({value: s, label: humanise(s)}))}
+          items={STATUSES.map((s) => ({value: s, label: humanise(s), hint: at('status', s)}))}
         />
 
         <CheckboxGroup
           legend="Channel"
           name="channel"
           selected={options.channels ?? []}
-          items={CHANNELS.map((c) => ({value: c, label: humanise(c)}))}
+          items={CHANNELS.map((c) => ({
+            value: c,
+            label: humanise(c),
+            hint: at('channel', c),
+          }))}
         />
 
         <CheckboxGroup
@@ -142,7 +168,7 @@ export function Filters({
           items={countries.map((c) => ({
             value: c.country,
             label: countryName(c.country),
-            hint: c.customers,
+            hint: at('country', c.country),
           }))}
         />
 
@@ -300,7 +326,13 @@ function CheckboxGroup({
                 />
                 <span className="min-w-0 flex-1">{item.label}</span>
                 {item.hint != null && (
-                  <span aria-hidden="true" data-numeric className="text-xs text-(--color-muted)">
+                  <span
+                    aria-hidden="true"
+                    data-numeric
+                    className={`text-xs ${
+                      item.hint === 0 ? 'text-(--color-rule-2)' : 'text-(--color-muted)'
+                    }`}
+                  >
                     {count(item.hint)}
                   </span>
                 )}

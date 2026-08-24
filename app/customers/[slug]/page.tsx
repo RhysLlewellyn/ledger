@@ -25,6 +25,7 @@ import {
 import {customerHref, parseCustomerParams} from '@/metrics/params.ts'
 import type {Query} from '@/metrics/sql.ts'
 
+import {Figure} from '../../figure-block.tsx'
 import {Scroller} from '../../scroller.tsx'
 import {Unavailable} from '../../unavailable.tsx'
 
@@ -153,8 +154,8 @@ export default async function CustomerPage({
           value={money(customer.mrr_pence)}
           note={churned ? 'nil — account closed' : undefined}
         />
-        <Figure label="Revenue booked" value={money(customer.lifetime_pence)} note="all positive movements" />
-        <Figure label="Events recorded" value={count(customer.event_count)} />
+        <Figure size="md" label="Revenue booked" value={money(customer.lifetime_pence)} note="all positive movements" />
+        <Figure size="md" label="Events recorded" value={count(customer.event_count)} />
         <Figure
           label="Last seen"
           value={customer.last_seen_at ? day(customer.last_seen_at) : 'Never'}
@@ -355,18 +356,6 @@ export default async function CustomerPage({
         )}
       </section>
     </>
-  )
-}
-
-function Figure({label, value, note}: {label: string; value: string; note?: string}) {
-  return (
-    <div>
-      <dt className="text-xs tracking-wide text-(--color-ink-2) uppercase">{label}</dt>
-      <dd data-numeric className="mt-1 text-xl">
-        {value}
-      </dd>
-      {note && <dd className="text-xs text-(--color-muted)">{note}</dd>}
-    </div>
   )
 }
 

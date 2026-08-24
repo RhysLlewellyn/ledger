@@ -827,6 +827,39 @@ performance story that is true, the performance story wins.
 
 ---
 
+## The filter counts had to stop lying
+
+Each filter option carried a count, and the counts were unconditional. So the result line
+would read *"117 customers match all 3 filters applied"* while the panel two inches below
+still offered **Enterprise 372** and **United Kingdom 1,500**. Those numbers described a
+view that was not on screen, and a reader reasonably read them as "372 more Enterprise
+accounts are available here". On a build that polices this exact class of dishonesty
+everywhere else — the blank-versus-0% note on the cohort grid, one list of column labels so
+the caption and the header cannot disagree — it was the one place the interface asserted
+something untrue.
+
+They are conditional now, and each dimension is counted against everything else applied
+**minus its own filter**. That rule is not arbitrary: counting against the whole predicate
+would show every plan except the ticked one as zero, which is true and answers a question
+nobody asked. Excluding a dimension from its own count answers the one the reader actually
+has, which is *what would happen if I ticked this as well*. Status and Channel had no counts
+at all before and now behave like the other two.
+
+One query, four scans of four thousand rows in a single statement. **12 ms warm**, against
+4 ms for the two unconditional queries it replaces — and it runs in `Promise.all` beside the
+table query, which is slower, so the page's critical path is unchanged.
+
+It also found its own bug. `customerWhere` writes clauses naming `c`, `p`, `cs` and `cm`,
+and this query was first written joining `plan pl`. Every filter worked except one: the plan
+branch keeps the *other* dimensions' clauses, so `p.slug` only appears when a plan is ticked.
+The query was fine until somebody filtered by plan, and then the page rendered "the database
+is not answering", because the fallback added earlier catches everything a query can throw.
+**A catch-all that turns a bug into a polite message is worth having and worth being
+suspicious of** — the caught error is logged now, and `customerWhere` documents its alias
+contract.
+
+---
+
 ## The statement
 
 A design critique put it plainly: **the product is called Ledger and had never once drawn
@@ -868,6 +901,36 @@ A test walks the twenty-five busiest accounts and asserts three things: that the
 back in date order, that credits minus debits equals the closing balance, and that the
 running balance from Postgres's window function agrees with accumulating the same rows by
 hand in JavaScript.
+
+---
+
+## The last pass
+
+Smaller things, from the same critique, none of which changed a decision:
+
+**The favicon was a four-bar blue bar chart** — the generic analytics mark, on a build whose
+own stylesheet complains about "the generated-dashboard signature". It is a ruled page with
+the accountant's double rule at the foot: the one mark here that says *ledger* and nothing
+else, and four lines and a thicker pair is the only detail that survives 16px anyway.
+
+**The customer table was nine columns with nothing helping the eye stay on a row** — roughly
+seventeen hundred pixels of travel to carry one company from its name to when it was last
+seen, separated only by a 1.31:1 hairline. Rows tint on hover using `--color-paper-2`, which
+already existed in the tokens and was unused, and the name column pins on horizontal scroll.
+That is what the cohort grid already did for the identical problem: the two solved it two
+different ways, and now they solve it one.
+
+**The net-movement bars had no scale.** The £4m…£0 labels beside the plot above belong to
+the *line*, and the bars sit directly beneath them — so a reader could not tell a twenty
+thousand pound month from a two hundred thousand pound one, and the bars appeared to hang
+below a "£0" that was not theirs. They have their own two ticks now, and six units of air
+between the plots instead of two, because the gap is what says these are two charts.
+
+**`Figure` existed twice**, on the overview and the customer page, differing by one type-size
+step and by whether the note carried `data-numeric` — so the same qualifier was set in mono
+on one page and sans on the other. Neither difference was a decision; they were written weeks
+apart and drifted. One component, with size as a prop, because a single customer's MRR
+genuinely is a smaller claim than the whole business's.
 
 ---
 

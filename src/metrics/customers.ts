@@ -128,8 +128,12 @@ const OUTER_SORT_EXPRESSION: Record<SortColumn, string> = {
  * only gets added to one of them. Adding name search made that concrete —
  * without this, the export would have quietly ignored the search box.
  *
- * Returns the clauses rather than a string, because the two callers alias their
+ * Returns the clauses rather than a string, because the callers alias their
  * tables the same way but assemble the rest of the query differently.
+ *
+ * **The alias contract**: every clause below names `c` (customer), `p` (plan),
+ * `cs` (the current subscription) and `cm` (the customer's summed movements).
+ * Any query using this has to join those four under exactly those names.
  */
 export function customerWhere(options: CustomerFilters, p: Params): string[] {
   const where: string[] = []

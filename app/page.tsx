@@ -4,6 +4,7 @@ import {reportBounds} from '@/metrics/facets.ts'
 import {mrrMonthly, type MrrMonth} from '@/metrics/mrr-series.ts'
 import type {Query} from '@/metrics/sql.ts'
 
+import {Figure} from './figure-block.tsx'
 import {Unavailable} from './unavailable.tsx'
 
 import {MovementChart} from './charts/movement-chart.tsx'
@@ -123,22 +124,6 @@ export default async function Overview() {
         </ul>
       </nav>
     </>
-  )
-}
-
-function Figure({label, value, note}: {label: string; value: string; note?: string}) {
-  return (
-    <div>
-      <dt className="text-xs tracking-wide text-(--color-ink-2) uppercase">{label}</dt>
-      <dd data-numeric className="mt-1 text-2xl">
-        {value}
-      </dd>
-      {note && (
-        <dd data-numeric className="mt-0.5 text-xs text-(--color-muted)">
-          {note}
-        </dd>
-      )}
-    </div>
   )
 }
 

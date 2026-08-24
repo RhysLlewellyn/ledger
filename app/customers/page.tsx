@@ -6,9 +6,11 @@ import {count, country as countryName, day, humanise, money} from '@/format.ts'
 import {customerTable, type CustomerRow} from '@/metrics/customers.ts'
 import {
   countryFacets,
+  facetCounts,
   planFacets,
   reportBounds,
   type CountryFacet,
+  type FacetCount,
   type PlanFacet,
 } from '@/metrics/facets.ts'
 import {
@@ -55,18 +57,23 @@ function run<T>(query: Query): Promise<T[]> {
 const load = cache(async (search: string) => {
   const options = parseCustomerParams(rawFromSearch(search))
   try {
-    const [rows, plans, countries, bounds] = await Promise.all([
+    const [rows, plans, countries, counts, bounds] = await Promise.all([
       run<CustomerRow>(customerTable(options)),
       run<PlanFacet>(planFacets()),
       run<CountryFacet>(countryFacets()),
+      run<FacetCount>(facetCounts(options)),
       run<{first_day: string; last_day: string}>(reportBounds()),
     ])
     if (!bounds[0]) return {ok: false as const, options}
     // `count(*) over ()` rides along on every row, so the total costs nothing
     // extra — but there are no rows to carry it when nothing matched.
     const total = rows.length > 0 ? Number(rows[0]!.total_count) : 0
-    return {ok: true as const, options, rows, plans, countries, bounds: bounds[0], total}
-  } catch {
+    return {ok: true as const, options, rows, plans, countries, counts, bounds: bounds[0], total}
+  } catch (error) {
+    // Logged, not swallowed. The fallback below is for Neon being asleep, and
+    // it looks identical when the cause is a broken query — which happened
+    // once, and was invisible until somebody read the server output.
+    console.error('customers query failed', error)
     return {ok: false as const, options}
   }
 })
@@ -136,7 +143,7 @@ export default async function Customers({
   if (!data.ok) {
     return <Unavailable title="Customers" retry={`/customers${customerHref(options)}`} />
   }
-  const {rows, plans, countries, total} = data
+  const {rows, plans, countries, counts, total} = data
   const here = customerHref(options)
   const bounds = [data.bounds]
   const applied = activeFilterCount(options)
@@ -211,7 +218,13 @@ export default async function Customers({
         )}
       </div>
 
-      <Filters options={options} plans={plans} countries={countries} bounds={bounds[0]!} />
+      <Filters
+        options={options}
+        plans={plans}
+        countries={countries}
+        counts={counts}
+        bounds={bounds[0]!}
+      />
 
       {total === 0 ? (
         <EmptyState options={options} plans={plans} />
@@ -239,7 +252,7 @@ export default async function Customers({
               </caption>
               <thead>
                 <tr>
-                  {COLUMNS.map((c) => (
+                  {COLUMNS.map((c, i) => (
                     <SortHeader
                       key={c.column}
                       column={c.column}
@@ -247,20 +260,45 @@ export default async function Customers({
                       options={options}
                       numeric={c.numeric}
                       initial={c.initial}
+                      // The first column pins with its cells, or the label
+                      // scrolls away from the column it names.
+                      pinned={i === 0}
                     />
                   ))}
                 </tr>
               </thead>
+              {/*
+                A hover tint and a pinned name column.
+
+                Nine columns separated by a 1.31:1 hairline is roughly
+                seventeen hundred pixels of horizontal travel to carry one
+                company from its name to when it was last seen, with nothing
+                helping the eye stay on the row. `--color-paper-2` already
+                existed in the tokens and was unused; it is the quietest
+                possible answer, and it is a surface tint rather than a data
+                colour, so it does not break the rule that colour appears only
+                inside data marks.
+
+                The name cell pins on scroll, which is what the cohort grid
+                already did for the same problem — the two solved it two
+                different ways, and now they solve it one.
+              */}
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.id} className="border-b border-(--color-rule)">
+                  <tr
+                    key={row.id}
+                    className="group border-b border-(--color-rule) hover:bg-(--color-paper-2)"
+                  >
                     {/*
                       The name is the link, not the row. A whole-row link
                       cannot contain the other links a row might need, is
                       announced as one enormous link, and makes selecting the
                       text in a cell impossible.
                     */}
-                    <th scope="row" className="py-2 pr-4 text-left font-normal">
+                    <th
+                      scope="row"
+                      className="sticky left-0 z-10 bg-(--color-paper) py-2 pr-4 text-left font-normal group-hover:bg-(--color-paper-2)"
+                    >
                       {/*
                         The row link carries the current view, so the detail
                         page's own back link can return to it rather than to

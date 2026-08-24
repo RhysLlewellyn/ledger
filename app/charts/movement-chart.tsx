@@ -161,7 +161,7 @@ export function MovementChart({months}: {months: readonly MrrMonth[]}) {
           <li
             key={tick}
             data-numeric
-            className="absolute left-0 -translate-y-1/2 bg-(--color-paper) pr-1"
+            className="absolute left-0 -translate-y-1/2 bg-(--color-paper) py-0.5 pr-2"
             style={{top: `${(y(tick) / H) * 100}%`}}
           >
             {money(tick)}

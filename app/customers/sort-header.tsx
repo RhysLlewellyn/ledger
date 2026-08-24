@@ -37,12 +37,15 @@ export function SortHeader({
   numeric = false,
   /** The direction this column starts in when it is not the current sort. */
   initial = 'asc',
+  /** Pins this header to the left edge, matching its column's cells. */
+  pinned = false,
 }: {
   column: SortColumn
   label: string
   options: CustomerQueryOptions
   numeric?: boolean
   initial?: 'asc' | 'desc'
+  pinned?: boolean
 }) {
   const isSorted = options.sort === column
   const direction = isSorted ? options.direction : initial
@@ -57,7 +60,7 @@ export function SortHeader({
       // "MRR ▼" and "Signed up" read as one heading.
       className={`border-b border-(--color-rule-2) py-2 pr-4 whitespace-nowrap font-normal ${
         numeric ? 'text-right' : 'text-left'
-      }`}
+      } ${pinned ? 'sticky left-0 z-10 bg-(--color-paper)' : ''}`}
     >
       <a
         href={`/customers${customerHref(options, {sort: column, direction: nextDirection})}`}

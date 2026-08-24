@@ -1,8 +1,26 @@
+<!--
+  A ruled page with a double rule under the last line.
+
+  It was a four-bar blue bar chart: the generic analytics mark, on a build
+  whose own stylesheet complains about "the generated-dashboard signature".
+  Every other product in the category ships that icon.
+
+  This is what the product actually is. Hairlines on paper, in the same ink and
+  the same rule colour the interface uses, and the accountant's double rule at
+  the foot -- the one mark in the whole build that says "ledger" and nothing
+  else. It reads at 16px because it is four horizontal lines and a thicker
+  pair, which is the only detail that survives that size anyway.
+-->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" fill="#FCFCFB"/>
-  <line x1="5" y1="26" x2="27" y2="26" stroke="#151A21" stroke-width="1.5"/>
-  <rect x="6" y="17" width="4" height="8" fill="#1F5C8B"/>
-  <rect x="12" y="12" width="4" height="13" fill="#1F5C8B"/>
-  <rect x="18" y="14" width="4" height="11" fill="#1F5C8B"/>
-  <rect x="24" y="7" width="4" height="18" fill="#1F5C8B"/>
+  <g stroke="#151A21" stroke-linecap="square">
+    <line x1="6" y1="7" x2="26" y2="7" stroke-width="2"/>
+    <g stroke="#8B8B86" stroke-width="1.5">
+      <line x1="6" y1="12.5" x2="21" y2="12.5"/>
+      <line x1="6" y1="17" x2="26" y2="17"/>
+      <line x1="6" y1="21.5" x2="18" y2="21.5"/>
+    </g>
+    <line x1="6" y1="25.5" x2="26" y2="25.5" stroke-width="1.5"/>
+    <line x1="6" y1="28" x2="26" y2="28" stroke-width="1.5"/>
+  </g>
 </svg>
