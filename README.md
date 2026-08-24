@@ -72,84 +72,127 @@ after would be a way to cheat the comparison. `explain (analyze, buffers)` is ca
 separately from the timing, because `explain analyze` carries its own instrumentation
 overhead and its "Execution Time" is not what a user waits for.
 
-Local Postgres 17 in Docker, 256MB shared buffers, 768MB `effective_cache_size` — a
-small server, which is what the free tier this deploys to actually is.
+The before-and-after pair below is local Postgres 17 in Docker with 256MB of shared
+buffers and 768MB of `effective_cache_size` — deliberately a small server. The third
+table is the deployment's own database.
+
+### Reading the tables
+
+Two time columns, and against a remote database the gap between them is the point.
+
+**Server** is planning plus execution inside Postgres, out of `explain (analyze)`.
+It carries that statement's own per-node instrumentation overhead, so it is an upper
+bound on the database's cost rather than the cost itself — which is why a few rows
+below show a server figure slightly *above* the wall clock beside it.
+
+**Median / p95** is wall clock from the machine running the harness: the database, plus
+the round trip to it, plus the driver. It is what a caller actually waited.
 
 ### Before: no indexes beyond the primary keys
 
-The first migration deliberately creates nothing but primary keys and two slug
-uniques. An unindexed schema can only be measured before the indexes exist.
+The first migration deliberately creates nothing but primary keys and two slug uniques.
+An unindexed schema can only be measured before the indexes exist. Local Postgres, so
+the network term is nil.
 
-| Query | Median | p95 | Scans |
-|---|---:|---:|---|
-| `mrr-series (from movements)` | 852.4 ms | 872.1 ms | Seq Scan on subscription, Seq Scan on mrr_movement |
-| `mrr-series (from rollup)` | 3.8 ms | 4.6 ms | Seq Scan on mrr_movement, Seq Scan on daily_rollup |
-| `mrr-series (correlated subquery)` | 383.1 ms | 397.4 ms | Seq Scan on mrr_movement |
-| `cohort-retention` | 47.3 ms | 52.6 ms | Seq Scan on customer, Seq Scan on subscription |
-| `customer-table (page 1, unfiltered)` | 365.5 ms | 401.1 ms | Seq Scan on event, + 3 others |
-| `customer-table (page 12, four filters)` | 711.3 ms | 729.2 ms | Seq Scan on event, + 3 others |
-| `customer-table (sorted by last seen)` | **32.86 s** | — | Seq Scan on event, + 3 others |
-| `customer-events` | 26.1 ms | 30.0 ms | Seq Scan on event |
+| Query | Server | Median | p95 | Scans |
+|---|---:|---:|---:|---|
+| `mrr-series (from movements)` | 1.25 s | 999.5 ms | 1.05 s | Seq Scan on subscription, Seq Scan on mrr_movement |
+| `mrr-series (from rollup)` | 2.9 ms | 4.4 ms | 5.2 ms | Seq Scan on daily_rollup, Seq Scan on mrr_movement |
+| `mrr-series (correlated subquery)` | 648.0 ms | 442.3 ms | 458.2 ms | Seq Scan on mrr_movement |
+| `cohort-retention` | 71.8 ms | 64.1 ms | 70.2 ms | Seq Scan on customer, Seq Scan on subscription |
+| `customer-table (page 1, unfiltered)` | 516.2 ms | 546.2 ms | 570.6 ms | **Seq Scan on event**, + 3 others |
+| `customer-table (page 12, four filters)` | 541.0 ms | 568.5 ms | 579.8 ms | **Seq Scan on event**, + 3 others |
+| `customer-table (sorted by last seen)` | 36.60 s | **33.72 s** | — | **Seq Scan on event**, + 3 others |
+| `customer-events` | 30.5 ms | 31.0 ms | 38.2 ms | **Seq Scan on event** |
 
 ### After: five indexes
 
-| Query | Median | p95 | Change |
-|---|---:|---:|---:|
-| `customer-table (sorted by last seen)` | 47.0 ms | 52.1 ms | **699×** |
-| `customer-table (page 12, four filters)` | 12.9 ms | 16.7 ms | **55×** |
-| `customer-table (page 1, unfiltered)` | 15.8 ms | 19.6 ms | **23×** |
-| `customer-events` | 1.4 ms | 1.9 ms | **19×** |
-| `mrr-series (correlated subquery)` | 280.7 ms | 294.0 ms | 1.4× |
-| `cohort-retention` | 61.3 ms | 72.8 ms | — |
-| `mrr-series (from rollup)` | 4.8 ms | 6.4 ms | — |
-| `mrr-series (from movements)` | 985.1 ms | 1.10 s | — |
+| Query | Server | Median | p95 | Change |
+|---|---:|---:|---:|---:|
+| `customer-table (sorted by last seen)` | 83.1 ms | 63.5 ms | 74.9 ms | **531×** |
+| `customer-table (page 12, four filters)` | 20.5 ms | 13.9 ms | 18.9 ms | **41×** |
+| `customer-table (page 1, unfiltered)` | 18.9 ms | 17.4 ms | 20.8 ms | **31×** |
+| `customer-events` | 0.3 ms | 1.8 ms | 3.1 ms | **17×** |
+| `mrr-series (correlated subquery)` | 484.3 ms | 280.0 ms | 333.4 ms | 1.6× |
+| `cohort-retention` | 69.2 ms | 63.8 ms | 73.0 ms | — |
+| `mrr-series (from rollup)` | 2.6 ms | 4.6 ms | 6.0 ms | — |
+| `mrr-series (from movements)` | 1.25 s | 990.7 ms | 1.01 s | — |
 
-The last four rows are the honest part of this table. Three of them did not improve,
-and one of them measured slower after the change than before it.
+The last four rows are the honest part of this table: three of them did not improve.
 
 `cohort-retention` and the two series queries are not index-bound. The cohort grid's
 cost is a cross join of every cohort against every month offset — CPU over a few
-thousand rows, and no index changes it. The 47.3 ms → 61.3 ms difference is run-to-run
-noise on a laptop, and it is left in the table rather than quietly re-run until it
-looked better.
+thousand rows, and no index changes it. Where the before and after differ by a few
+milliseconds on those rows, that is run-to-run variance on a laptop, and it is left in
+the table rather than quietly re-run until it looked tidier.
 
 `mrr-series (correlated subquery)` is the shape you get from writing the obvious
-subquery: for each of 730 days, re-sum every movement up to that day. An index takes
-it from 383 ms to 281 ms, which is the least interesting improvement here, because the
-problem with it is not the scan. It is quadratic in the life of the business. The
-window-function version is `mrr-series (from movements)` and it does the same
-arithmetic in single-digit milliseconds. Nothing renders from the correlated version;
-it is kept as a measured baseline so the README can put a number on a claim instead of
-asserting it.
+subquery: for each of 730 days, re-sum every movement up to that day. An index takes it
+from 442 ms to 280 ms, which is the least interesting improvement here, because the
+problem with it is not the scan — it is quadratic in the life of the business. The
+window-function version is `mrr-series (from movements)`, and it does the same
+arithmetic over the money in single-digit milliseconds. Nothing renders from the
+correlated version; it is kept as a measured baseline so this section can put a number
+on a claim instead of asserting it.
+
+### And on the deployment: Neon, London
+
+Everything above is a laptop. This is the database the live site actually reads —
+Neon on AWS `eu-west-2`, free tier, with the Vercel functions pinned to `lhr1` in
+`vercel.json` so both halves are in the same city.
+
+| Query | Server | Median | p95 |
+|---|---:|---:|---:|
+| `mrr-series (from rollup)` | 3.5 ms | 34.3 ms | 37.9 ms |
+| `cohort-retention` | 83.2 ms | 94.3 ms | 100.6 ms |
+| `customer-table (page 1, unfiltered)` | 19.5 ms | 44.0 ms | 48.1 ms |
+| `customer-table (page 12, four filters)` | 16.3 ms | 40.2 ms | 42.2 ms |
+| `customer-table (sorted by last seen)` | 80.3 ms | 83.6 ms | 87.3 ms |
+| `customer-events` | 0.6 ms | 28.6 ms | 30.8 ms |
+
+The two columns come apart here, and `customer-events` is the clearest case: 0.6 ms
+inside Postgres, 28.6 ms measured from my desk. Twenty-eight of those milliseconds are
+the round trip from a domestic connection to London and back. The deployed function
+does not pay them — it is in the same region as the database — which is the entire
+reason `vercel.json` pins the region. A function in Washington reading this database
+would add roughly eighty milliseconds to every row in that table, and the 100 ms p95
+target would be gone before Postgres had done any work.
+
+Neon's free tier suspends compute after five minutes idle, so the first request after a
+quiet period pays a cold start of several hundred milliseconds. That is a property of
+the tier, not of the queries, and any Lighthouse number quoted here will say whether it
+was measured warm.
 
 ### The one that mattered: `event (customer_id, occurred_at desc)`
 
 A customer page shows the last fifty things that happened to one account. Before:
 
 ```
-Limit  (actual time=20.614..24.996 rows=50 loops=1)
+Limit  (actual time=23.788..30.352 rows=50 loops=1)
   Buffers: shared hit=3419
   ->  Gather Merge  (Workers Launched: 2)
         ->  Sort  (Sort Key: occurred_at DESC, id)
-              ->  Parallel Seq Scan on event e  (actual time=0.008..4.695 rows=103 loops=3)
+              ->  Parallel Seq Scan on event e  (actual time=0.006..4.180 rows=103 loops=3)
                     Filter: (customer_id = '090dd5f5-…'::uuid)
-                    Rows Removed by Filter: 86,148
+                    Rows Removed by Filter: 86148
+Execution Time: 30.402 ms
 ```
 
 Three workers between them read every one of 258,751 rows and threw away 258,443 of
 them. After:
 
 ```
-Limit  (actual time=0.259..0.265 rows=50 loops=1)
-  Buffers: shared hit=299
+Limit  (actual time=0.231..0.236 rows=50 loops=1)
+  Buffers: shared hit=300
   ->  Sort  (Sort Key: occurred_at DESC, id)
-        ->  Bitmap Heap Scan on event e  (actual time=0.063..0.192 rows=308 loops=1)
-              ->  Bitmap Index Scan on event_customer_occurred_idx  (actual time=0.040..0.041)
+        ->  Bitmap Heap Scan on event e  (actual time=0.052..0.177 rows=308 loops=1)
+              ->  Bitmap Index Scan on event_customer_occurred_idx  (actual time=0.034..0.034)
                     Index Cond: (customer_id = '090dd5f5-…'::uuid)
-                    Buffers: shared hit=4
+                    Buffers: shared hit=5
+Execution Time: 0.295 ms
 ```
 
-3,419 buffers to 299, and the index itself is four. The descending second column is
+3,419 buffers to 300, of which the index itself is five. 30.4 ms to 0.3 ms. The descending second column is
 not decoration: the query is `order by occurred_at desc limit 50`, and a matching
 index order is the difference between reading fifty rows and reading every row for
 that account and sorting them.
@@ -195,7 +238,7 @@ to delete the table.
 It earns its place on the active-customer count. A customer is active on a day if any of
 their subscriptions spans it, so computing that honestly means checking every
 subscription against every day in the window and counting distinct customers:
-852 ms against 3.8 ms, which is 224× and is the whole gap between the two series
+999 ms against 4.4 ms, which is 227× and is the whole gap between the two series
 queries in the tables above. That is what the column is for.
 
 Both implementations are kept and a test asserts they return identical rows across all
@@ -238,18 +281,20 @@ seconds and its ceiling is 400 ms. Nothing in between is ambiguous.
 Against the spec's target of every dashboard query under 100 ms at p95, on this machine:
 
 ```
-  ✓     6.0 ms  overview: MRR series from the rollup
-  ✓    74.5 ms  cohorts: retention grid
-  ✓    23.3 ms  customers: page 1, unfiltered
-  ✓    16.1 ms  customers: page 12, four filters
-  ✓    60.9 ms  customers: sorted by last seen
-  ✓     2.2 ms  customer: event feed
+  ✓     4.8 ms  overview: MRR series from the rollup
+  ✓    66.2 ms  cohorts: retention grid
+  ✓    19.6 ms  customers: page 1, unfiltered
+  ✓    17.9 ms  customers: page 12, four filters
+  ✓    50.2 ms  customers: sorted by last seen
+  ✓     1.8 ms  customer: event feed
 ```
 
-The cohort grid is the one with the least headroom, and it is CPU rather than IO. If it
-needed to come down, the answer would be to stop expanding every cohort against every
-offset in SQL and to compute the grid from a single pass over subscription intervals —
-not another index.
+The cohort grid is the one with the least headroom, and it is CPU rather than IO. On
+Neon it is 83 ms inside Postgres against a 100 ms budget, which is close enough that
+it is the next thing to fix rather than a thing that is fixed. The answer when it comes
+will not be another index: it will be to stop expanding every cohort against every
+month offset in SQL and compute the grid from a single pass over subscription
+intervals.
 
 ---
 

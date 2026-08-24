@@ -43,6 +43,13 @@ import type {Query} from '../src/metrics/sql.ts'
  * `explain analyze` adds its own instrumentation overhead and its "Execution
  * Time" is not what a user waits for. The plan is there to say *what changed*;
  * the timings say *by how much*.
+ *
+ * Both numbers are reported, and against a remote database the gap between
+ * them is the point. The wall clock is what this machine waited; the server
+ * column is planning plus execution inside Postgres, which is what a function
+ * deployed alongside the database would wait. Running the harness from a
+ * laptop in one country against Postgres in another and quoting the wall clock
+ * as the query's cost is how a database gets blamed for a round trip.
  */
 
 /** Sample size by how slow the query turned out to be, in milliseconds. */
@@ -58,6 +65,7 @@ const to = AS_AT.toISOString().slice(0, 10)
 
 type Measurement = {
   name: string
+  serverMs: number | null
   medianMs: number
   p95Ms: number
   minMs: number
@@ -120,7 +128,10 @@ async function main() {
     process.stdout.write(`${query.name}… `)
     results.push(await measure(sql, query))
     const last = results[results.length - 1]!
-    console.log(`${format(last.medianMs)} median · ${last.planSummary}`)
+    console.log(
+      `${format(last.medianMs)} median, ` +
+        `${last.serverMs == null ? '?' : format(last.serverMs)} in Postgres · ${last.planSummary}`,
+    )
   }
 
   await mkdir('docs/measurements', {recursive: true})
@@ -179,6 +190,7 @@ async function measure(
 
   return {
     name: query.name,
+    serverMs: serverTime(plan),
     runs,
     medianMs: samples[Math.floor(samples.length / 2)]!,
     p95Ms: samples[Math.min(samples.length - 1, Math.ceil(samples.length * 0.95) - 1)]!,
@@ -215,6 +227,17 @@ function summarise(plan: string): string {
   return [...new Set(scans)].join(', ') || 'no scan nodes'
 }
 
+/**
+ * Planning plus execution, as Postgres measured them: the part of the wall
+ * clock that is the database rather than the wire.
+ */
+function serverTime(plan: string): number | null {
+  const planning = plan.match(/Planning Time: ([\d.]+) ms/)
+  const execution = plan.match(/Execution Time: ([\d.]+) ms/)
+  if (!execution) return null
+  return Number(execution[1]) + Number(planning?.[1] ?? 0)
+}
+
 /** Milliseconds up to a second, then seconds. `41056.3 ms` reads as noise. */
 function format(ms: number): string {
   return ms >= 1_000 ? `${(ms / 1_000).toFixed(2)} s` : `${ms.toFixed(1)} ms`
@@ -229,13 +252,18 @@ function render(label: string, results: readonly Measurement[]): string {
     '',
     'A run count of 1 means the query was too slow to sample and the single figure is a cold run.',
     '',
-    '| Query | Rows | Runs | Median | p95 | Fastest | Scans |',
-    '|---|---:|---:|---:|---:|---:|---|',
+    'The server column is planning plus execution inside Postgres. The rest is wall clock from',
+    'the machine running the harness, and against a remote database the difference between them',
+    'is the network.',
+    '',
+    '| Query | Rows | Runs | Server | Median | p95 | Fastest | Scans |',
+    '|---|---:|---:|---:|---:|---:|---:|---|',
   ]
 
   for (const r of results) {
     lines.push(
       `| \`${r.name}\` | ${r.rows.toLocaleString()} | ${r.runs} | ` +
+        `${r.serverMs == null ? '—' : format(r.serverMs)} | ` +
         `${format(r.medianMs)} | ${format(r.p95Ms)} | ${format(r.minMs)} | ${r.planSummary} |`,
     )
   }
