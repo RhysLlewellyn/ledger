@@ -5,6 +5,7 @@ import {AS_AT, WINDOW_START} from '../src/db/generate.ts'
 import {cohortRetention} from '../src/metrics/cohorts.ts'
 import {customerEvents, customerTable} from '../src/metrics/customers.ts'
 import {
+  mrrMonthly,
   mrrSeriesCorrelated,
   mrrSeriesFromMovements,
   mrrSeriesFromRollup,
@@ -97,6 +98,7 @@ async function main() {
   if (!busiest) throw new Error('No events. Run `npm run seed` first.')
 
   const queries: Query[] = [
+    mrrMonthly(from, to),
     mrrSeriesFromMovements(from, to),
     mrrSeriesFromRollup(from, to),
     mrrSeriesCorrelated(from, to),

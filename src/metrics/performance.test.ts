@@ -5,7 +5,7 @@ import {AS_AT, WINDOW_START} from '../db/generate.ts'
 import {probeDatabase, skipWithoutDatabase, testDatabaseUrl} from '../db/testing.ts'
 import {cohortRetention} from './cohorts.ts'
 import {customerEvents, customerTable} from './customers.ts'
-import {mrrSeriesFromRollup} from './mrr-series.ts'
+import {mrrMonthly, mrrSeriesFromRollup} from './mrr-series.ts'
 import type {Query} from './sql.ts'
 
 /**
@@ -55,6 +55,11 @@ const TARGET_MS = 100
  * act on.
  */
 const CASES: {label: string; query: Query; ceilingMs: number}[] = [
+  {
+    label: 'overview: monthly series behind both charts',
+    query: mrrMonthly(from, to),
+    ceilingMs: 150,
+  },
   {
     label: 'overview: MRR series from the rollup',
     query: mrrSeriesFromRollup(from, to),

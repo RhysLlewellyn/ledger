@@ -69,6 +69,18 @@ export function count(n: string | number): string {
   return COUNT.format(Number(n))
 }
 
+/**
+ * A signed change in a count of things, as opposed to a change in money.
+ *
+ * These two were briefly the same function, which put a customer count through
+ * a currency formatter: a rise of 77 accounts divided itself by a hundred and
+ * rendered as "+1". Money and counts are different types wearing the same
+ * clothes, and the only reliable defence is not to share the formatter.
+ */
+export function countDelta(n: number): string {
+  return `${n > 0 ? '+' : n < 0 ? '−' : ''}${COUNT.format(Math.abs(n))}`
+}
+
 export function percent(fraction: number, digits = 0): string {
   return `${(fraction * 100).toFixed(digits)}%`
 }

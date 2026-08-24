@@ -173,3 +173,88 @@ export function mrrSeriesCorrelated(from: string, to: string): Query {
     `,
   }
 }
+
+export type MrrMonth = {
+  month: string
+  mrr_pence: string
+  active_customers: number
+  new_pence: string
+  expansion_pence: string
+  contraction_pence: string
+  churn_pence: string
+  reactivation_pence: string
+  new_count: number
+  churn_count: number
+}
+
+/**
+ * The same story by month rather than by day, which is what the charts draw.
+ *
+ * Twenty-four points instead of 730, because a chart has to be readable at
+ * 360 pixels wide and 730 bars at that width are half a pixel each. The line
+ * could carry the daily series and the bars beneath it could not, and a chart
+ * whose two halves disagree about their time axis is worse than one that is
+ * coarser than it could be.
+ *
+ * Closing MRR per month is a lookup into the rollup rather than a sum: the
+ * value on the last day of the month already is the running total, so this
+ * asks for one row per month by primary key and stops. The movement columns
+ * are a straight group-by over the spine.
+ */
+export function mrrMonthly(from: string, to: string): Query {
+  const p = new Params()
+  const start = p.add(from)
+  const end = p.add(to)
+
+  return {
+    name: 'mrr-monthly',
+    params: p.values,
+    text: `
+      with months as (
+        select generate_series(
+          date_trunc('month', ${start}::date),
+          date_trunc('month', ${end}::date),
+          interval '1 month'
+        )::date as month
+      ),
+      closing as (
+        select
+          m.month,
+          -- The last day of the month, or the as-at date if the month is the
+          -- one the report ends in. A part-month closes on the day the data
+          -- stops, not on a future date with no rows behind it.
+          least((m.month + interval '1 month - 1 day')::date, ${end}::date) as closes_on
+        from months m
+      ),
+      movement as (
+        select
+          date_trunc('month', occurred_on)::date as month,
+          coalesce(sum(amount_pence) filter (where kind = 'new'), 0)::bigint as new_pence,
+          coalesce(sum(amount_pence) filter (where kind = 'expansion'), 0)::bigint as expansion_pence,
+          coalesce(sum(amount_pence) filter (where kind = 'contraction'), 0)::bigint as contraction_pence,
+          coalesce(sum(amount_pence) filter (where kind = 'churn'), 0)::bigint as churn_pence,
+          coalesce(sum(amount_pence) filter (where kind = 'reactivation'), 0)::bigint as reactivation_pence,
+          count(*) filter (where kind = 'new')::int as new_count,
+          count(*) filter (where kind = 'churn')::int as churn_count
+        from mrr_movement
+        where occurred_on between ${start}::date and ${end}::date
+        group by 1
+      )
+      select
+        to_char(c.month, 'YYYY-MM') as month,
+        coalesce(r.mrr_pence, 0)::bigint as mrr_pence,
+        coalesce(r.active_customers, 0) as active_customers,
+        coalesce(mv.new_pence, 0)::bigint as new_pence,
+        coalesce(mv.expansion_pence, 0)::bigint as expansion_pence,
+        coalesce(mv.contraction_pence, 0)::bigint as contraction_pence,
+        coalesce(mv.churn_pence, 0)::bigint as churn_pence,
+        coalesce(mv.reactivation_pence, 0)::bigint as reactivation_pence,
+        coalesce(mv.new_count, 0) as new_count,
+        coalesce(mv.churn_count, 0) as churn_count
+      from closing c
+      left join daily_rollup r on r.day = c.closes_on
+      left join movement mv on mv.month = c.month
+      order by c.month
+    `,
+  }
+}
