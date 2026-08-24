@@ -848,7 +848,7 @@ npm run dev                   # http://localhost:3003
 ```
 
 ```bash
-npm test                      # 86 tests; most of them need the database
+npm test                      # 100 tests; most of them need the database
 npm run measure -- before     # query timings and plans -> docs/measurements/
 npm run contrast              # every contrast ratio, exits non-zero on a failure
 npm run a11y                  # keyboard and accessibility-tree sweep, plus axe
