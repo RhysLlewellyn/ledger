@@ -4,8 +4,8 @@ A subscription billing analytics dashboard for an invented SaaS. Four thousand
 customers, two complete years of billing history, a quarter of a million product
 events — and the point of it is that a data-dense interface stays fast and stays
 usable at that volume. Every dashboard query is under 100 ms at p95 against the
-deployed database, Lighthouse is 98+ on all five categories with CLS at 0, and axe
-finds nothing across seven pages.
+deployed database, Lighthouse is 99+ on the three main pages with CLS at 0, and axe finds
+nothing across seven pages at 1280 and at 360.
 
 **Live:** https://ledger-beta-wheat.vercel.app
 
@@ -37,8 +37,17 @@ pass changed the markup.
 | | Performance | Accessibility | Best practices | SEO | Agentic Browsing |
 |---|---|---|---|---|---|
 | `/` — the overview | **99** | **100** | **100** | **100** | **100** |
-| `/customers` — 4,000 rows, filtered | **99** | **100** | **100** | **100** | **100** |
-| `/cohorts` — the retention grid | **98** | **100** | **100** | **100** | **100** |
+| `/customers` — 4,000 rows, filtered | **100** | **100** | **100** | **100** | **100** |
+| `/cohorts` — the retention grid | **99** | **100** | **100** | **100** | **100** |
+| `/customers/[slug]` — one account | **99** | **100** | **100** | 90 | **100** |
+
+**The 90 is the one number here that is not 98+, and it is worth saying why rather than
+leaving it off the table.** A customer page has to look its customer up before it can title
+itself, so its `generateMetadata` is async, so Next streams the whole route's metadata and
+the meta description lands after `<body>` opens. The trade is a page title that names the
+company against a meta description on one of four thousand near-identical pages of invented
+data. The title wins. The same trade on `/customers` went the other way, and the reasoning
+for both is in [the screen-reader pass](#the-screen-reader-pass).
 
 **CLS is 0 on all three**, which is the number a layout change is most likely to cost
 you and the one I check first. It is also the number three self-hosted webfonts are most
@@ -688,14 +697,27 @@ accessible name, so a screen-reader user could not jump to the filters by rotor 
 walked down from the "Filters" heading every time, on a page whose entire purpose is
 filtering.
 
-**The title never changed when the results did.** `metadata.title` was the static
-"Customers" for every filtered view, so the first thing announced after submitting a filter
-was the same phrase as before pressing it. It reads `1,085 customers — Ledger` now.
-`generateMetadata` and the page share one set of queries through React's `cache`, keyed on
-the canonical query string — the cache key is the URL, which is what this page claims its
-state is anyway — so the title costs no extra query. It costs no latency either: Next
-streams metadata, and a deliberately delayed `generateMetadata` still returned first bytes
-in 9.9 ms.
+**The title never changed when the results did** — and it still does not, which is a
+decision rather than an oversight. `metadata.title` is the static "Customers" for every
+filtered view, so the first thing announced after submitting a filter is the same phrase as
+before pressing it.
+
+It was built. `generateMetadata` awaited the page's own query through React's `cache`, keyed
+on the canonical query string, so the count cost no extra query and no latency — the title
+read `1,085 customers — Ledger` and the answer arrived in the first two seconds. Then it was
+measured, and it had taken the meta description with it.
+
+An async `generateMetadata` makes a route's whole metadata async, and Next then streams it:
+the tags are emitted after `<body>` opens and hoisted into the head by a script. **A meta
+description outside `<head>` is not a meta description**, and this is not only a Lighthouse
+artefact — Googlebot's user agent gets the same streamed response. Lighthouse SEO fell from
+100 to 90. `loading.tsx` is not the cause and moving the description to a static layout does
+not help, because one async segment makes the whole route async; both were checked.
+
+So the count is not in the title, and it is the first thing after the heading instead. That
+is the position change that did the real work — the reader reaches it about seven lines into
+the page rather than in the first two seconds. It is the smaller of the two prizes and the
+one that does not cost a real signal to keep.
 
 Every transcript is in [`docs/nvda/`](docs/nvda), one file per scene, verbatim. They are
 the evidence for everything above, and they are checked in because a claim about a

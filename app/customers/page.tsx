@@ -93,35 +93,32 @@ const DESCRIPTION =
   'Every customer, filterable by plan, status, country, channel, signup date and ' +
   'monthly revenue. Filtering, sorting and pagination all happen in the database.'
 
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Promise<RawParams>
-}): Promise<Metadata> {
-  const data = await load(customerHref(parseCustomerParams(await searchParams)))
+/*
+  Static, and it costs the page a nicety that was measured and given up.
 
-  /*
-    The count goes in the title when a filter is applied.
+  This was `generateMetadata`, awaiting the shared query so the title could
+  carry the result count -- "1,085 customers — Ledger" -- which put the answer
+  in the first thing NVDA says after a filter is submitted. It worked, and it
+  cost the meta description.
 
-    NVDA announces the document title first on every page load, and applying a
-    filter is a page load. Before this, the first thing a reader heard after
-    submitting was "Customers — Ledger" — the same words as before they
-    pressed it — and the answer waited further down the page. Now it is
-    "1,085 customers — Ledger" and the result arrives in the first two seconds.
+  An async `generateMetadata` makes the whole route's metadata async, and Next
+  then streams it: the tags are emitted after <body> opens and hoisted into the
+  head by a script. Verified that this is not only a Lighthouse artefact --
+  Googlebot's user agent gets the same streamed response -- and a meta
+  description outside <head> is not a meta description. Lighthouse SEO went
+  from 100 to 90 on this page. Also verified that `loading.tsx` is not the
+  cause and that moving the description to a static layout does not help,
+  because one async segment makes the route's whole metadata async.
 
-    Unfiltered it stays "Customers", so the plain page keeps a title worth
-    bookmarking. Verified that this does not cost the streamed shell anything:
-    Next streams metadata, and a deliberately delayed `generateMetadata` still
-    returned first bytes in 9.9ms.
-  */
-  const title =
-    data.ok && activeFilterCount(data.options) > 0
-      ? data.total === 0
-        ? 'No customers match'
-        : `${count(data.total)} ${data.total === 1 ? 'customer' : 'customers'}`
-      : 'Customers'
-
-  return {title, description: DESCRIPTION}
+  So the count is not in the title. It is the first thing after the heading
+  instead, which is the position change that did the real work, and the reader
+  reaches it about seven lines into the page rather than in the first two
+  seconds. That is the smaller of the two prizes, and it is the one that does
+  not cost a real signal to keep.
+*/
+export const metadata: Metadata = {
+  title: 'Customers',
+  description: DESCRIPTION,
 }
 
 export default async function Customers({
