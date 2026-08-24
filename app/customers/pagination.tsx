@@ -34,17 +34,36 @@ export function Pagination({
       aria-label="Customer table pages"
       className="mt-6 flex items-baseline justify-between gap-4 border-t border-(--color-rule) pt-4 text-sm"
     >
-      {options.page > 1 ? (
-        <a
-          href={`/customers${customerHref(options, {page: options.page - 1})}`}
-          rel="prev"
-          className="inline-block py-1 underline underline-offset-4"
-        >
-          ← Previous
-        </a>
-      ) : (
-        <span className="text-(--color-muted)">← Previous</span>
-      )}
+      {/*
+        First and last, either side of Previous and Next.
+
+        Two links was the right answer for a numbered pager over eighty pages
+        and the wrong answer for reaching page eighty: it cost seventy-nine
+        clicks, and the only person who got there was somebody who worked out
+        they could edit the URL. Four links reach both ends and still do not
+        put eighty numbers in front of a screen reader.
+      */}
+      <p className="flex gap-4">
+        {options.page > 1 ? (
+          <>
+            <a
+              href={`/customers${customerHref(options, {page: 1})}`}
+              className="inline-block py-1 underline underline-offset-4"
+            >
+              ⇤ First
+            </a>
+            <a
+              href={`/customers${customerHref(options, {page: options.page - 1})}`}
+              rel="prev"
+              className="inline-block py-1 underline underline-offset-4"
+            >
+              ← Previous
+            </a>
+          </>
+        ) : (
+          <span className="py-1 text-(--color-muted)">← Previous</span>
+        )}
+      </p>
 
       {/*
         The spaces live inside text nodes that have something else in them.
@@ -72,17 +91,27 @@ export function Pagination({
         <span className="sr-only">{`, page ${options.page} of ${lastPage}`}</span>
       </p>
 
-      {options.page < lastPage ? (
-        <a
-          href={`/customers${customerHref(options, {page: options.page + 1})}`}
-          rel="next"
-          className="inline-block py-1 underline underline-offset-4"
-        >
-          Next →
-        </a>
-      ) : (
-        <span className="text-(--color-muted)">Next →</span>
-      )}
+      <p className="flex gap-4">
+        {options.page < lastPage ? (
+          <>
+            <a
+              href={`/customers${customerHref(options, {page: options.page + 1})}`}
+              rel="next"
+              className="inline-block py-1 underline underline-offset-4"
+            >
+              Next →
+            </a>
+            <a
+              href={`/customers${customerHref(options, {page: lastPage})}`}
+              className="inline-block py-1 underline underline-offset-4"
+            >
+              Last ⇥
+            </a>
+          </>
+        ) : (
+          <span className="py-1 text-(--color-muted)">Next →</span>
+        )}
+      </p>
     </nav>
   )
 }

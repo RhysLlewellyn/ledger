@@ -160,3 +160,54 @@ describe('counting what is active', () => {
     expect(activeFilterCount(options)).toBe(5)
   })
 })
+
+describe('search and page size', () => {
+  it('trims a search term and drops an empty one', () => {
+    expect(parseCustomerParams({q: '  quarry  '}).query).toBe('quarry')
+    expect(parseCustomerParams({q: '   '}).query).toBeUndefined()
+    expect(parseCustomerParams({q: ''}).query).toBeUndefined()
+  })
+
+  it('caps a search term rather than sending an essay to Postgres', () => {
+    const long = 'a'.repeat(500)
+    expect(parseCustomerParams({q: long}).query).toHaveLength(60)
+  })
+
+  it('keeps wildcards as characters, because they are matched literally', () => {
+    // The term is a bound parameter, so % and _ are not pattern syntax. If
+    // that ever changes, "%" alone would silently match every customer.
+    expect(parseCustomerParams({q: '100%_off'}).query).toBe('100%_off')
+  })
+
+  it('round-trips a search term through the URL', () => {
+    const options = parseCustomerParams({q: 'quarry works'})
+    expect(customerHref(options)).toBe('?q=quarry+works')
+    expect(parseCustomerParams({q: 'quarry works'}).query).toBe(
+      parseCustomerParams(Object.fromEntries(new URLSearchParams('q=quarry+works'))).query,
+    )
+  })
+
+  it('accepts only the page sizes it offers', () => {
+    expect(parseCustomerParams({perPage: '25'}).perPage).toBe(25)
+    expect(parseCustomerParams({perPage: '200'}).perPage).toBe(200)
+    for (const junk of ['99999', '0', '-50', '12', 'all', '', '1e6']) {
+      expect(parseCustomerParams({perPage: junk}).perPage).toBe(DEFAULTS.perPage)
+    }
+  })
+
+  it('leaves the default page size out of the URL', () => {
+    expect(customerHref(parseCustomerParams({perPage: '50'}))).toBe('')
+    expect(customerHref(parseCustomerParams({perPage: '200'}))).toBe('?perPage=200')
+  })
+
+  it('counts a search as an applied filter', () => {
+    expect(activeFilterCount(parseCustomerParams({}))).toBe(0)
+    expect(activeFilterCount(parseCustomerParams({q: 'quarry'}))).toBe(1)
+    expect(activeFilterCount(parseCustomerParams({q: 'quarry', country: 'GB'}))).toBe(2)
+  })
+
+  it('resets to page one when the search changes', () => {
+    const onPageTwelve = parseCustomerParams({page: '12', q: 'works'})
+    expect(customerHref(onPageTwelve, {query: 'quarry'})).not.toContain('page=')
+  })
+})

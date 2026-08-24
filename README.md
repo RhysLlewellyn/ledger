@@ -695,6 +695,61 @@ replaces the page without announcing anything at all, so somebody listening pres
 column heading and heard silence. There is no client state to fall out of step with the
 address bar, and the whole thing works with JavaScript switched off.
 
+### Finding one customer among four thousand
+
+There was no way to. The filters offered plan, status, channel, country, signup date and
+revenue range, and no text input at all — so reaching a named account meant sorting by
+name and paging through up to eighty pages, two clicks at a time. The 404 had been
+sending people to a link labelled *"Search the customer table →"* since the day it was
+written.
+
+It is one more field in the same GET form, so it is one more parameter in the URL and it
+needs no Apply: Enter in a text field submits the form it is in, which is the browser
+doing for free what a search box usually needs JavaScript for. `perPage` came out with
+it — it had been in the query options since the first commit, pinned to 50, a knob in the
+URL that nobody could reach — and the pager gained First and Last, because two links were
+the right answer for not printing eighty page numbers and the wrong answer for reaching
+page eighty.
+
+**It is `strpos`, not `ilike`, and a test is why.** The obvious form is
+`c.name ilike '%' || $1 || '%'`, with the term bound rather than interpolated, and that is
+safe from injection. It is not safe from *pattern syntax*: a bound parameter concatenated
+into a LIKE pattern is still read as one, so searching for `%` matched all four thousand
+customers. The test asserting that a wildcard is not a filter-that-matches-everything
+caught it on its first run. `strpos` has no pattern language, so every character means
+itself.
+
+Measured rather than assumed: a sequential scan of four thousand customers matching 137
+of them runs in **0.93 ms**. A `pg_trgm` GIN index would buy nothing at this size and
+would have to be maintained on every write. The honest note is that this is the one
+filter in the build that does not scale with the table — at four hundred thousand
+customers it is the first thing that would need one.
+
+### One predicate, not two
+
+The table and the CSV export each had their own hand-written copy of the filter clauses.
+They were byte-identical, which is the problem rather than the defence: this README claims
+the file and the screen cannot disagree about what "the current view" is, and two copies of
+a predicate is a promise that one day they will. Adding search made it concrete — the
+export would have quietly ignored the search box.
+
+They share `customerWhere` now, and a test walks five views (including a search, a search
+combined with a country, and a search that matches nothing) asserting that the export
+returns exactly the number of rows the page printed, in the same order.
+
+### Going back to the view you came from
+
+"← All customers" was a bare `/customers`. Filter four thousand rows down to a hundred and
+seventeen, open one, press the page's own back link, and the filters were gone — the state
+was in the URL the whole time and the interface threw it away.
+
+Each row link carries the current query string, and the detail page reads it back through
+the same parser the table uses and re-serialises it with the same writer. So whatever comes
+out is a URL the customers page would have produced itself: a hand-edited `from` cannot
+smuggle in a path or a host, and the worst it can do is describe an unfiltered table. The
+page declares a canonical URL without it, because one page reachable at many addresses is
+a page that should say which one is real.
+
 Three rules hold in the parser, each with a test:
 
 **Nothing throws.** These values come from a URL, which means they come from anybody.

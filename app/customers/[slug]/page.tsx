@@ -22,6 +22,7 @@ import {
   type MovementRow,
   type SubscriptionRow,
 } from '@/metrics/customer-detail.ts'
+import {customerHref, parseCustomerParams} from '@/metrics/params.ts'
 import type {Query} from '@/metrics/sql.ts'
 
 import {Scroller} from '../../scroller.tsx'
@@ -41,18 +42,47 @@ export async function generateMetadata({
   params: Promise<{slug: string}>
 }): Promise<Metadata> {
   const {slug} = await params
+  // `?from=` makes this page reachable at many URLs that are all the same
+  // page, so it declares which one is the real one.
+  const alternates = {canonical: `/customers/${slug}`}
   try {
     const [customer] = await run<CustomerDetail>(customerBySlug(slug))
-    return customer ? {title: customer.name} : {title: 'Customer not found'}
+    return customer
+      ? {title: customer.name, alternates}
+      : {title: 'Customer not found', alternates}
   } catch {
     // generateMetadata runs before the page does, so an unguarded query here
     // throws the request away before the page's own fallback can render.
-    return {title: 'Customer'}
+    return {title: 'Customer', alternates}
   }
 }
 
-export default async function CustomerPage({params}: {params: Promise<{slug: string}>}) {
+export default async function CustomerPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{slug: string}>
+  searchParams: Promise<{from?: string | string[]}>
+}) {
   const {slug} = await params
+
+  /*
+    The view this page was opened from, so going back returns to it.
+
+    "← All customers" was a bare `/customers`, so filtering four thousand rows
+    down to a hundred and seventeen, opening one of them and pressing the
+    page's own back link threw the filters away and started again. The state
+    was in the URL the whole time and the interface discarded it.
+
+    The table passes its own query string on every row link, and it is read
+    back here rather than trusted: it goes through the same parser the table
+    uses and comes out as a canonical query string, so a hand-edited `from`
+    cannot become an open redirect or a nonsense view. Anything unparseable
+    quietly becomes plain `/customers`.
+  */
+  const rawFrom = (await searchParams).from
+  const from = Array.isArray(rawFrom) ? rawFrom[0] : rawFrom
+  const backHref = `/customers${safeFrom(from)}`
 
   let customer: CustomerDetail | undefined
   try {
@@ -83,7 +113,7 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
     <>
       <p className="text-sm">
         <a
-          href="/customers"
+          href={backHref}
           className="inline-block py-1 underline underline-offset-4"
         >
           ← All customers
@@ -300,4 +330,24 @@ function describe(metadata: Record<string, unknown>): string {
     return `${humanise(key)}: ${String(value)}`
   })
   return parts.join(' · ')
+}
+
+/**
+ * A `from` query string, re-derived rather than trusted.
+ *
+ * It is parsed with the table's own parser and re-serialised with the table's
+ * own writer, so whatever comes back is a URL the customers page would have
+ * produced itself. A hand-edited value cannot smuggle in a path, a host, or a
+ * parameter the table does not understand — the worst it can do is describe an
+ * unfiltered table.
+ */
+function safeFrom(from: string | undefined): string {
+  if (!from) return ''
+  const params = new URLSearchParams(from.startsWith('?') ? from.slice(1) : from)
+  const raw: Record<string, string | string[]> = {}
+  for (const key of new Set(params.keys())) {
+    const all = params.getAll(key)
+    raw[key] = all.length > 1 ? all : all[0]!
+  }
+  return customerHref(parseCustomerParams(raw))
 }

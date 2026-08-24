@@ -137,6 +137,7 @@ export default async function Customers({
     return <Unavailable title="Customers" retry={`/customers${customerHref(options)}`} />
   }
   const {rows, plans, countries, total} = data
+  const here = customerHref(options)
   const bounds = [data.bounds]
   const applied = activeFilterCount(options)
 
@@ -260,8 +261,17 @@ export default async function Customers({
                       text in a cell impossible.
                     */}
                     <th scope="row" className="py-2 pr-4 text-left font-normal">
+                      {/*
+                        The row link carries the current view, so the detail
+                        page's own back link can return to it rather than to
+                        an unfiltered table. It is the query string this page
+                        was built from, which is the only description of the
+                        view that exists.
+                      */}
                       <a
-                        href={`/customers/${row.slug}`}
+                        href={`/customers/${row.slug}${
+                          here ? `?from=${encodeURIComponent(here)}` : ''
+                        }`}
                         className="underline underline-offset-4"
                       >
                         {row.name}
@@ -317,6 +327,8 @@ function EmptyState({
   const planName = (slug: string) => plans.find((p) => p.slug === slug)?.name ?? slug
 
   const active: string[] = [
+    // Search first: it is the narrowest clause and the likeliest culprit.
+    ...(options.query ? [`the name contains “${options.query}”`] : []),
     ...(options.plans?.length ? [`plan is ${list(options.plans.map(planName))}`] : []),
     ...(options.statuses?.length ? [`status is ${list(options.statuses.map(humanise))}`] : []),
     ...(options.countries?.length

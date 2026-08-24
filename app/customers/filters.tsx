@@ -1,7 +1,13 @@
 import {count, country as countryName, humanise, isoDay} from '@/format.ts'
 import type {CustomerQueryOptions} from '@/metrics/customers.ts'
 import type {CountryFacet, PlanFacet} from '@/metrics/facets.ts'
-import {activeFilterCount, CHANNELS, customerHref, STATUSES} from '@/metrics/params.ts'
+import {
+  activeFilterCount,
+  CHANNELS,
+  customerHref,
+  PAGE_SIZES,
+  STATUSES,
+} from '@/metrics/params.ts'
 
 /**
  * The filter panel.
@@ -61,6 +67,36 @@ export function Filters({
 
       <input type="hidden" name="sort" value={options.sort} />
       <input type="hidden" name="dir" value={options.direction} />
+
+      {/*
+        Search sits above the six fieldsets and outside the columns, because
+        it is the one thing somebody arrives already knowing they want.
+
+        Four thousand rows and no way to look one up by name was the largest
+        gap in the page: the only route to a named account was to sort by name
+        and page through up to eighty pages, two clicks at a time. The 404 has
+        been sending people to a link labelled "Search the customer table"
+        since the day it was written, which is now true.
+
+        It needs no Apply. Enter in a text field submits the form it is in,
+        which is the browser doing for free what a search box usually needs
+        JavaScript for.
+      */}
+      <div className="mt-4 max-w-prose">
+        <label htmlFor="q" className="block text-(--color-ink-2)">
+          Search by name
+        </label>
+        <input
+          id="q"
+          type="search"
+          name="q"
+          defaultValue={options.query ?? ''}
+          maxLength={60}
+          autoComplete="off"
+          placeholder="Any part of the name"
+          className="mt-1 w-full border border-(--color-field) px-2 py-1"
+        />
+      </div>
 
       {/*
         Multi-column rather than a grid. Six fieldsets of wildly different
@@ -180,12 +216,40 @@ export function Filters({
         </fieldset>
       </div>
 
-      <button
-        type="submit"
-        className="mt-6 border border-(--color-ink) px-4 py-1.5 hover:bg-(--color-ink) hover:text-(--color-paper)"
-      >
-        Apply filters
-      </button>
+      {/*
+        Page size, next to Apply rather than beside the pager.
+
+        `perPage` has been part of the query options since the first commit and
+        was pinned to the default, so the URL carried a knob nobody could reach.
+        It is a plain <select> in the same form: no JavaScript, and it lands in
+        the address bar like every other piece of state here.
+      */}
+      <div className="mt-6 flex flex-wrap items-end gap-6">
+        <button
+          type="submit"
+          className="border border-(--color-ink) px-4 py-1.5 hover:bg-(--color-ink) hover:text-(--color-paper)"
+        >
+            Apply filters
+        </button>
+
+        <p>
+          <label htmlFor="perPage" className="text-(--color-ink-2)">
+            Rows per page
+          </label>
+          <select
+            id="perPage"
+            name="perPage"
+            defaultValue={String(options.perPage)}
+            className="ml-2 border border-(--color-field) px-2 py-1"
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </p>
+      </div>
     </form>
   )
 }

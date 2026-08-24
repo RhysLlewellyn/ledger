@@ -57,6 +57,19 @@ export const DEFAULTS = {
   perPage: 50,
 }
 
+/**
+ * The page sizes the URL will accept.
+ *
+ * An allow-list rather than a clamp, because `perPage` decides how many rows a
+ * single request builds and a free-text number is an invitation to ask for a
+ * hundred thousand of them. Fifty stays the default, so the plain URL does not
+ * change.
+ */
+export const PAGE_SIZES = [25, 50, 100, 200] as const
+
+/** The longest search term the table will act on. */
+const MAX_QUERY = 60
+
 /** What Next hands a server component: a value can be absent, single or repeated. */
 export type RawParams = Record<string, string | string[] | undefined>
 
@@ -68,7 +81,10 @@ export function parseCustomerParams(raw: RawParams): CustomerQueryOptions {
     sort: SORT_COLUMNS.includes(sort as SortColumn) ? (sort as SortColumn) : DEFAULTS.sort,
     direction: direction === 'asc' || direction === 'desc' ? direction : DEFAULTS.direction,
     page: positiveInt(one(raw.page)) ?? DEFAULTS.page,
-    perPage: DEFAULTS.perPage,
+    perPage: pageSize(one(raw.perPage)),
+    // Trimmed, capped, and dropped entirely when it is empty, so that
+    // `?q=` and no `q` at all are the same view rather than two.
+    query: text(one(raw.q)),
     plans: many(raw.plan),
     statuses: many(raw.status).filter((s) => (STATUSES as readonly string[]).includes(s)),
     countries: many(raw.country).filter((c) => /^[A-Z]{2}$/.test(c)),
@@ -100,6 +116,8 @@ export function customerHref(
   if (next.sort !== DEFAULTS.sort) q.set('sort', next.sort)
   if (next.direction !== DEFAULTS.direction) q.set('dir', next.direction)
   if (next.page !== DEFAULTS.page) q.set('page', String(next.page))
+  if (next.perPage !== DEFAULTS.perPage) q.set('perPage', String(next.perPage))
+  if (next.query) q.set('q', next.query)
   for (const plan of next.plans ?? []) q.append('plan', plan)
   for (const status of next.statuses ?? []) q.append('status', status)
   for (const country of next.countries ?? []) q.append('country', country)
@@ -116,6 +134,7 @@ export function customerHref(
 /** Whether anything is narrowing the table — the empty state needs to know. */
 export function activeFilterCount(options: CustomerQueryOptions): number {
   return (
+    (options.query ? 1 : 0) +
     (options.plans?.length ?? 0) +
     (options.statuses?.length ?? 0) +
     (options.countries?.length ?? 0) +
@@ -131,6 +150,16 @@ export function activeFilterCount(options: CustomerQueryOptions): number {
 
 function one(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value
+}
+
+function pageSize(value: string | undefined): number {
+  const n = Number(value)
+  return (PAGE_SIZES as readonly number[]).includes(n) ? n : DEFAULTS.perPage
+}
+
+function text(value: string | undefined): string | undefined {
+  const trimmed = value?.trim().slice(0, MAX_QUERY)
+  return trimmed ? trimmed : undefined
 }
 
 function many(value: string | string[] | undefined): string[] {

@@ -1,4 +1,4 @@
-import type {CustomerQueryOptions} from './customers.ts'
+import {customerWhere, type CustomerQueryOptions} from './customers.ts'
 import {Params, type Query} from './sql.ts'
 
 /**
@@ -19,26 +19,10 @@ import {Params, type Query} from './sql.ts'
  */
 export function customerExport(options: CustomerQueryOptions): Query {
   const p = new Params()
-  const where: string[] = []
+  // The same predicate the table uses, so the file and the screen cannot
+  // describe two different sets of customers.
+  const where = customerWhere(options, p)
 
-  if (options.plans?.length) where.push(`p.slug = any(${p.add(options.plans)})`)
-  if (options.statuses?.length) where.push(`cs.status::text = any(${p.add(options.statuses)})`)
-  if (options.countries?.length) where.push(`c.country = any(${p.add(options.countries)})`)
-  if (options.channels?.length) {
-    where.push(`c.acquisition_channel::text = any(${p.add(options.channels)})`)
-  }
-  if (options.signedUpFrom) {
-    where.push(`(c.signed_up_at at time zone 'UTC')::date >= ${p.add(options.signedUpFrom)}::date`)
-  }
-  if (options.signedUpTo) {
-    where.push(`(c.signed_up_at at time zone 'UTC')::date <= ${p.add(options.signedUpTo)}::date`)
-  }
-  if (options.mrrMinPence != null) {
-    where.push(`coalesce(cm.mrr_pence, 0) >= ${p.add(options.mrrMinPence)}`)
-  }
-  if (options.mrrMaxPence != null) {
-    where.push(`coalesce(cm.mrr_pence, 0) <= ${p.add(options.mrrMaxPence)}`)
-  }
 
   const ORDER: Record<string, string> = {
     name: 'c.name',

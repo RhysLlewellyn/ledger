@@ -5,7 +5,8 @@ import {AS_AT, WINDOW_START} from '../db/generate.ts'
 import {refreshRollup} from '../db/rollup.ts'
 import {probeDatabase, skipWithoutDatabase, testDatabaseUrl} from '../db/testing.ts'
 import {cohortRetention, type CohortCell} from './cohorts.ts'
-import {customerTable, type CustomerRow} from './customers.ts'
+import {customerTable, type CustomerQueryOptions, type CustomerRow} from './customers.ts'
+import {customerExport} from './export.ts'
 import {mrrSeriesFromMovements, mrrSeriesFromRollup, type MrrPoint} from './mrr-series.ts'
 import type {Query} from './sql.ts'
 
@@ -316,3 +317,54 @@ function normalise(point: MrrPoint): Record<string, string | number> {
     reactivation_pence: String(point.reactivation_pence),
   }
 }
+
+describe.skipIf(skip)('the export and the table describe the same customers', () => {
+  /*
+    The README claims the file and the screen cannot disagree about what "the
+    current view" is. Until recently that rested on two hand-written copies of
+    the same predicate sitting in two files, which is a claim with a shelf
+    life: they were byte-identical right up until name search was added to one
+    of them. They share `customerWhere` now, and this is what holds it.
+  */
+  const views: CustomerQueryOptions[] = [
+    {sort: 'mrr', direction: 'desc', page: 1, perPage: 50},
+    {sort: 'name', direction: 'asc', page: 1, perPage: 50, query: 'works'},
+    {sort: 'mrr', direction: 'desc', page: 1, perPage: 50, countries: ['GB'], query: 'quarry'},
+    {sort: 'mrr', direction: 'desc', page: 1, perPage: 50, statuses: ['active'], mrrMinPence: 500_00},
+    {sort: 'mrr', direction: 'desc', page: 1, perPage: 50, query: 'no-such-company-anywhere'},
+  ]
+
+  it.each(views.map((v, i) => [i, v] as const))(
+    'view %i matches row for row',
+    async (_i, options) => {
+      const [rows, exported] = await Promise.all([
+        run<CustomerRow>(customerTable(options)),
+        run<{slug: string}>(customerExport(options)),
+      ])
+
+      const total = rows.length > 0 ? Number(rows[0]!.total_count) : 0
+      // The table pages; the export does not. The count the page prints is
+      // the number of rows the file will contain.
+      expect(exported).toHaveLength(total)
+
+      // And the first page is genuinely the first page of that file, in the
+      // same order, rather than the same rows shuffled.
+      expect(exported.slice(0, rows.length).map((r) => r.slug)).toEqual(rows.map((r) => r.slug))
+    },
+  )
+
+  it('matches a name literally, so a wildcard is not a filter that matches everything', async () => {
+    const all = await run<CustomerRow>(
+      customerTable({sort: 'mrr', direction: 'desc', page: 1, perPage: 1}),
+    )
+    const everyone = Number(all[0]!.total_count)
+
+    const wildcard = await run<CustomerRow>(
+      customerTable({sort: 'mrr', direction: 'desc', page: 1, perPage: 1, query: '%'}),
+    )
+    const matched = wildcard.length > 0 ? Number(wildcard[0]!.total_count) : 0
+
+    expect(everyone).toBeGreaterThan(0)
+    expect(matched).toBeLessThan(everyone)
+  })
+})
