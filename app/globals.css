@@ -1,49 +1,170 @@
 @import 'tailwindcss';
 
 /**
- * Provisional tokens.
+ * A printed analytical report.
  *
- * These are the starting values from the brief and they are deliberately not
- * yet the design. The direction is a printed analytical report -- cool neutral
- * paper, near-black ink, monospace for every number, hairline rules, and no
- * colour anywhere outside a data mark -- and it gets derived properly in one
- * pass once the interface exists, rather than being accreted screen by screen.
+ * The direction is a statistical yearbook, not a SaaS dashboard: cool neutral
+ * paper, blue-black ink, hairline rules, monospace for every number, and
+ * colour that appears only inside a data mark. Structure comes from rules and
+ * whitespace. There are no cards, no shadows, no rounded corners, no gradients
+ * and no glow anywhere in this build — dark panels with neon sparklines is the
+ * generated-dashboard signature and is exactly what this is not.
  *
- * Two rules that are already fixed and are not up for revision in that pass:
- * light only, because the dark tool in this portfolio is Meridian and two of
- * them would be one idea; and if a colour appears outside a chart, it is a bug.
+ * **Light only, deliberately.** No dark theme and no toggle.
+ *
+ * The palette was derived by studying a real data-led publication rather than
+ * invented or taken from a theme pack. What that produced was not a set of
+ * colours to copy but three structural facts: a serif for display paired with
+ * a neutral sans for text and a true monospace for figures; an ink that is
+ * blue-black rather than pure black, the way ink on paper actually is; and a
+ * very light neutral fill rather than white for anything that needs to sit
+ * back. The specific faces here are not the reference's — its display face is
+ * one of the most over-used on the web and would have been its own
+ * convergence.
+ *
+ * **Every ratio below is verified, not asserted.** `npm run contrast` prints
+ * the whole table and exits non-zero if any pairing the interface uses falls
+ * under its threshold. Ratios in the comments are that tool's output.
  */
 @theme {
+  /* Paper. Cool and slightly off-white; #FFF is a screen colour, not a paper one. */
   --color-paper: #fcfcfb;
-  --color-paper-2: #f4f4f2;
-  --color-rule: #dededa;
-  --color-rule-2: #b9b9b4;
-  --color-ink: #16171a;
-  --color-ink-2: #4c4e54;
-  /* Contrast against both papers is verified before this is used for text. */
-  --color-muted: #74767c;
+  --color-paper-2: #f2f2f0;
 
-  /* Data marks only. Never chrome, never text. */
-  --color-data-1: #1f5c8b;
-  --color-data-2: #b4552d;
-  --color-data-3: #4a7a4e;
-  --color-data-4: #7a5c99;
-  --color-data-neg: #a33a32;
+  /*
+   * Rules, split by job rather than by shade. WCAG 1.4.11 asks 3:1 of user
+   * interface components and of graphical objects needed to understand the
+   * content — not of a hairline between two table rows. Holding a decorative
+   * rule to 3:1 gives a page ruled in mid-grey, which is worse and no more
+   * accessible.
+   */
+  --color-rule: #dededa; /* 1.31:1 — decorative, between rows */
+  --color-rule-2: #b9b9b4; /* 1.92:1 — decorative, section rules */
+  --color-field: #8b8b86; /* 3.33:1 — inputs and buttons, a UI boundary */
+
+  /* Ink. Blue-black rather than #000, which no printed report has ever used. */
+  --color-ink: #151a21; /* 17.02:1 on paper */
+  --color-ink-2: #474c55; /* 8.41:1 — secondary prose, axes, the zero line */
+  --color-muted: #6e727b; /* 4.70:1 — hints and axis labels; clears AA by 0.2 */
+
+  /*
+   * Data marks only. If one of these appears outside a chart or a signed
+   * number, it is a bug.
+   */
+  --color-data-1: #1f5c8b; /* 6.91:1 — revenue, and the cohort ramp */
+  --color-data-2: #9c4a26; /* 5.98:1 — contraction */
+  --color-data-3: #3c6b41; /* 6.07:1 — expansion */
+  --color-data-4: #6b4e8c; /* 6.61:1 — reactivation */
+  --color-data-neg: #a33a32; /* 6.38:1 — held to 4.5 because it is text too */
+
+  /* One rhythm, taken from the reference's own grid gap. */
+  --spacing-gutter: 1.5rem;
 }
 
-/**
- * Every number in this product is monospace with tabular figures, so that a
- * column of money lines up on the decimal point and a figure that changes does
- * not shift the ones around it.
- */
 @layer base {
+  html {
+    /* A dense table is wide. The page scrolls the table, never the document. */
+    overflow-x: clip;
+  }
+
   body {
     background: var(--color-paper);
     color: var(--color-ink);
+    font-family: var(--font-sans);
+    /* Report type sits a little tighter than web-default. */
+    line-height: 1.45;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
   }
 
+  /*
+   * Headings are the serif. It is the one place this interface allows itself
+   * a voice, and it is what makes the thing read as a document rather than as
+   * an admin panel.
+   */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  /*
+   * Captions are prose, not titles. They were briefly in the display serif
+   * alongside the headings, which made the paragraph explaining the cohort
+   * grid look like a second <h1> and compete with the real one directly above
+   * it. A caption's job is to be read after the thing it describes.
+   */
+  caption {
+    font-family: inherit;
+    font-weight: 400;
+  }
+
+  /*
+   * Every number, everywhere, with tabular figures — metrics, axes, table
+   * cells, deltas, dates. Tabular is the load-bearing half: without it a
+   * column of money does not line up, and a figure that changes shifts the
+   * ones around it.
+   */
   [data-numeric] {
-    font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, monospace;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.01em;
+    /*
+     * A monospace space is as wide as a digit, which is right inside a column
+     * of figures and too loose inside a date -- "31  Jul  2026" reads as a
+     * spacing bug rather than as a date. Pulling the word space back leaves
+     * the digits on their monospace grid, which is the part that matters.
+     */
+    word-spacing: -0.15em;
+  }
+
+  /*
+   * One focus style for the whole build, declared once on :focus-visible, so
+   * nothing in this interface can be focusable and invisible. The offset is
+   * what makes it legible on a table row as well as on a button: a ring drawn
+   * flush to the element disappears into whatever border that element already
+   * has.
+   */
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+    border-radius: 1px;
+  }
+
+  th {
+    font-weight: 400;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-data-1) 22%, var(--color-paper));
+  }
+}
+
+@layer components {
+  /*
+   * A native disclosure marker is a filled triangle that no other element on
+   * this page has anything in common with. The chart tables use a rule and a
+   * sign instead, which is the same affordance drawn in the page's own voice.
+   */
+  summary {
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -40,7 +40,7 @@ export function Pagination({
         <Link
           href={`/customers${customerHref(options, {page: options.page - 1})}`}
           rel="prev"
-          className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+          className="underline underline-offset-4"
         >
           ← Previous
         </Link>
@@ -61,7 +61,7 @@ export function Pagination({
         <Link
           href={`/customers${customerHref(options, {page: options.page + 1})}`}
           rel="next"
-          className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+          className="underline underline-offset-4"
         >
           Next →
         </Link>

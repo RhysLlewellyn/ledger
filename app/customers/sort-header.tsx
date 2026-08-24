@@ -46,13 +46,16 @@ export function SortHeader({
     <th
       scope="col"
       aria-sort={isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : undefined}
-      className={`whitespace-nowrap border-b border-(--color-rule-2) py-2 font-normal ${
+      // The same right padding the body cells carry. Without it a
+      // right-aligned header runs straight into the next column's label and
+      // "MRR ▼" and "Signed up" read as one heading.
+      className={`border-b border-(--color-rule-2) py-2 pr-4 whitespace-nowrap font-normal ${
         numeric ? 'text-right' : 'text-left'
       }`}
     >
       <Link
         href={`/customers${customerHref(options, {sort: column, direction: nextDirection})}`}
-        className="inline-flex items-center gap-1 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+        className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
       >
         {label}
         <span aria-hidden="true" className="text-(--color-muted)">

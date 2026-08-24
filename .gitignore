@@ -23,3 +23,7 @@ desktop.ini
 .vercel
 
 .vercel/
+
+# Skills installed for the design pass, not part of the build.
+.agents/
+.claude/

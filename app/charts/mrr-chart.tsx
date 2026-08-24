@@ -118,7 +118,7 @@ export function MrrChart({months}: {months: readonly MrrMonth[]}) {
           x2={W}
           y1={barY(0)}
           y2={barY(0)}
-          stroke="var(--color-rule-2)"
+          stroke="var(--color-ink-2)"
           strokeWidth={1}
           vectorEffect="non-scaling-stroke"
         />

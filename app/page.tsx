@@ -107,7 +107,7 @@ export default async function Overview() {
           <li>
             <Link
               href="/cohorts"
-              className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+              className="underline underline-offset-4"
             >
               Retention by signup month →
             </Link>
@@ -115,7 +115,7 @@ export default async function Overview() {
           <li>
             <Link
               href="/customers"
-              className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+              className="underline underline-offset-4"
             >
               All {count(4000)} customers →
             </Link>

@@ -61,7 +61,7 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
       <p className="text-sm">
         <Link
           href="/customers"
-          className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+          className="underline underline-offset-4"
         >
           ← All customers
         </Link>

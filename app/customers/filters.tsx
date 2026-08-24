@@ -48,7 +48,7 @@ export function Filters({
         {applied > 0 && (
           <Link
             href="/customers"
-            className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+            className="underline underline-offset-4"
           >
             Clear {applied === 1 ? 'the filter' : `all ${applied} filters`}
           </Link>
@@ -58,7 +58,15 @@ export function Filters({
       <input type="hidden" name="sort" value={options.sort} />
       <input type="hidden" name="dir" value={options.direction} />
 
-      <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {/*
+        Multi-column rather than a grid. Six fieldsets of wildly different
+        heights -- three statuses against ten countries -- laid out on a grid
+        size every row to the tallest cell in it, which left a screen and a
+        half of empty paper between the short filters and the ones that had
+        been pushed below them. Columns pack by content instead, and
+        break-inside keeps a fieldset whole.
+      */}
+      <div className="mt-4 gap-8 sm:columns-2 lg:columns-3 xl:columns-4 [&>*]:mb-8 [&>*]:break-inside-avoid">
         <CheckboxGroup
           legend="Plan"
           name="plan"
@@ -100,7 +108,7 @@ export function Filters({
 
         <fieldset className="min-w-0">
           <legend className="mb-2 text-(--color-ink-2)">Signed up between</legend>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-2">
             <label className="sr-only" htmlFor="from">
               Signed up on or after
             </label>
@@ -111,10 +119,9 @@ export function Filters({
               defaultValue={options.signedUpFrom ?? ''}
               min={isoDay(bounds.first_day)}
               max={isoDay(bounds.last_day)}
-              className="border border-(--color-rule-2) bg-(--color-paper) px-2 py-1"
+              className="border border-(--color-field) bg-(--color-paper) px-2 py-1"
               data-numeric
             />
-            <span aria-hidden="true">–</span>
             <label className="sr-only" htmlFor="to">
               Signed up on or before
             </label>
@@ -125,7 +132,7 @@ export function Filters({
               defaultValue={options.signedUpTo ?? ''}
               min={isoDay(bounds.first_day)}
               max={isoDay(bounds.last_day)}
-              className="border border-(--color-rule-2) bg-(--color-paper) px-2 py-1"
+              className="border border-(--color-field) bg-(--color-paper) px-2 py-1"
               data-numeric
             />
           </div>
@@ -146,7 +153,7 @@ export function Filters({
               inputMode="numeric"
               placeholder="min"
               defaultValue={options.mrrMinPence != null ? options.mrrMinPence / 100 : ''}
-              className="w-24 border border-(--color-rule-2) bg-(--color-paper) px-2 py-1"
+              className="w-24 border border-(--color-field) bg-(--color-paper) px-2 py-1"
               data-numeric
             />
             <span aria-hidden="true">–</span>
@@ -162,7 +169,7 @@ export function Filters({
               inputMode="numeric"
               placeholder="max"
               defaultValue={options.mrrMaxPence != null ? options.mrrMaxPence / 100 : ''}
-              className="w-24 border border-(--color-rule-2) bg-(--color-paper) px-2 py-1"
+              className="w-24 border border-(--color-field) bg-(--color-paper) px-2 py-1"
               data-numeric
             />
           </div>
@@ -171,7 +178,7 @@ export function Filters({
 
       <button
         type="submit"
-        className="mt-6 border border-(--color-ink) px-4 py-1.5 hover:bg-(--color-ink) hover:text-(--color-paper) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+        className="mt-6 border border-(--color-ink) px-4 py-1.5 hover:bg-(--color-ink) hover:text-(--color-paper)"
       >
         Apply filters
       </button>

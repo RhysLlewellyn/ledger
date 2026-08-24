@@ -52,9 +52,20 @@ export function ChartFigure({
         {caption}
       </figcaption>
 
-      <details className="mt-3 border-t border-(--color-rule) pt-2">
-        <summary className="cursor-pointer text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)">
-          {tableSummary}
+      {/*
+        `group` and `group-open` draw the marker, because the native one is a
+        filled triangle that has nothing in common with anything else on this
+        page. A plus and a minus is the same affordance in the page's own
+        voice, and it is aria-hidden because <summary> already announces its
+        own expanded state.
+      */}
+      <details className="group mt-3 border-t border-(--color-rule) pt-2">
+        <summary className="inline-flex cursor-pointer items-baseline gap-2 text-sm">
+          <span aria-hidden="true" data-numeric className="text-(--color-muted)">
+            <span className="group-open:hidden">+</span>
+            <span className="hidden group-open:inline">−</span>
+          </span>
+          <span className="underline underline-offset-4">{tableSummary}</span>
         </summary>
         <div className="mt-3 overflow-x-auto">{table}</div>
       </details>

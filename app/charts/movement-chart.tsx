@@ -125,7 +125,11 @@ export function MovementChart({months}: {months: readonly MrrMonth[]}) {
             x2={W}
             y1={y(tick)}
             y2={y(tick)}
-            stroke={tick === 0 ? 'var(--color-rule-2)' : 'var(--color-rule)'}
+            // The zero line is a graphical object somebody needs in order to
+            // read this chart, so it is drawn in ink rather than in a
+            // decorative rule colour. 1.4.11 applies to it and not to the
+            // gridlines around it.
+            stroke={tick === 0 ? 'var(--color-ink-2)' : 'var(--color-rule)'}
             strokeWidth={1}
             vectorEffect="non-scaling-stroke"
           />
@@ -185,7 +189,7 @@ export function MovementChart({months}: {months: readonly MrrMonth[]}) {
                 width="14"
                 height="14"
                 fill={s.pattern ? `url(#mv-${s.pattern})` : s.fill}
-                stroke="var(--color-rule-2)"
+                stroke="var(--color-field)"
               />
             </svg>
             {s.label}

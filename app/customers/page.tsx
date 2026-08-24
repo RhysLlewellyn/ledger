@@ -101,7 +101,7 @@ export default async function Customers({
           <a
             href={`/api/export${customerHref(options)}`}
             download
-            className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+            className="underline underline-offset-4"
           >
             Download all {count(total)} as CSV
           </a>
@@ -145,7 +145,7 @@ export default async function Customers({
                     <th scope="row" className="py-2 pr-4 text-left font-normal">
                       <Link
                         href={`/customers/${row.slug}`}
-                        className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+                        className="underline underline-offset-4"
                       >
                         {row.name}
                       </Link>
@@ -228,7 +228,7 @@ function EmptyState({
       <p className="mt-4 text-sm">
         <Link
           href="/customers"
-          className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-ink)"
+          className="underline underline-offset-4"
         >
           Clear all filters
         </Link>{' '}
