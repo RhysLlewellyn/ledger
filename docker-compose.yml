@@ -1,0 +1,32 @@
+# A real Postgres for the seed and the test suite.
+#
+# The thing this build is trying to prove is how the queries behave against a
+# quarter of a million rows, and a quarter of a million rows is not something
+# a mock has. Port 5434 rather than 5432 so it never collides with a Postgres
+# already installed locally, and not 5433 either -- that one is Meridian's.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ledger
+      POSTGRES_PASSWORD: ledger
+      POSTGRES_DB: ledger
+    ports:
+      - '5434:5432'
+    # The seed writes 250k rows in a handful of COPY-sized batches and the
+    # measurements read them back repeatedly. The defaults for a container this
+    # small leave Postgres planning against 128MB of assumed cache, which makes
+    # every EXPLAIN in this repo a measurement of the wrong machine.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=16MB
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ledger -d ledger']
+      interval: 2s
+      timeout: 3s
+      retries: 30

@@ -1,0 +1,21 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Secrets. The connection string and API keys live here and never in the repo.
+.env
+.env.*
+!.env.example
+
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+coverage/
+.vitest/
+
+Thumbs.db
+desktop.ini
+.DS_Store

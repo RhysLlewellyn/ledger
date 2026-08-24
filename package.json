@@ -1,0 +1,47 @@
+{
+  "name": "ledger",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack -p 3003",
+    "build": "next build --turbopack",
+    "start": "next start -p 3003",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down -v",
+    "seed": "node --env-file=.env src/db/seed.ts",
+    "measure": "node --env-file=.env tools/measure.mjs"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.6",
+    "next": "^16.3.1",
+    "postgres": "^3.4.7",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "axe-core": "^4.13.0",
+    "drizzle-kit": "^0.31.6",
+    "eslint": "^9",
+    "eslint-config-next": "^16.3.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  },
+  "browserslist": [
+    "chrome >= 111",
+    "edge >= 111",
+    "firefox >= 111",
+    "safari >= 16.4"
+  ]
+}
