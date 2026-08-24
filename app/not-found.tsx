@@ -1,3 +1,5 @@
+import type {Metadata} from 'next'
+
 /**
  * A real 404.
  *
@@ -10,7 +12,17 @@
  * The two ways to arrive here are a mistyped customer slug and a link to
  * something that has moved, so both routes out are offered by name rather than
  * a single "go home".
+ *
+ * The title matters more here than on a page somebody meant to open. Without
+ * it this page inherited the root default and read "Ledger" in the tab strip
+ * and in browser history -- identical to the front page, so a dead link and
+ * the home page were indistinguishable from anywhere except the page itself.
  */
+export const metadata: Metadata = {
+  title: 'Page not found',
+  robots: {index: false, follow: true},
+}
+
 export default function NotFound() {
   return (
     <>

@@ -7,6 +7,7 @@ import {reportBounds} from '@/metrics/facets.ts'
 import type {Query} from '@/metrics/sql.ts'
 
 import {CohortGrid} from '../charts/cohort-grid.tsx'
+import {Unavailable} from '../unavailable.tsx'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,15 +35,7 @@ export default async function Cohorts() {
       cohortRetention(bounds.first_day, bounds.last_day, MAX_OFFSET, bounds.last_day),
     )
   } catch {
-    return (
-      <>
-        <h1 className="text-2xl">Cohorts</h1>
-        <p className="mt-4 max-w-prose text-sm">
-          The database is not answering at the moment. This deployment runs on a free tier
-          that suspends its compute when idle; a refresh usually wakes it.
-        </p>
-      </>
-    )
+    return <Unavailable title="Cohorts" retry="/cohorts" />
   }
 
   const finding = describe(cells)

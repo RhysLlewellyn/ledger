@@ -24,6 +24,8 @@ import {
 } from '@/metrics/customer-detail.ts'
 import type {Query} from '@/metrics/sql.ts'
 
+import {Unavailable} from '../../unavailable.tsx'
+
 export const dynamic = 'force-dynamic'
 
 const FEED_LIMIT = 50
@@ -38,20 +40,41 @@ export async function generateMetadata({
   params: Promise<{slug: string}>
 }): Promise<Metadata> {
   const {slug} = await params
-  const [customer] = await run<CustomerDetail>(customerBySlug(slug))
-  return customer ? {title: customer.name} : {title: 'Customer not found'}
+  try {
+    const [customer] = await run<CustomerDetail>(customerBySlug(slug))
+    return customer ? {title: customer.name} : {title: 'Customer not found'}
+  } catch {
+    // generateMetadata runs before the page does, so an unguarded query here
+    // throws the request away before the page's own fallback can render.
+    return {title: 'Customer'}
+  }
 }
 
 export default async function CustomerPage({params}: {params: Promise<{slug: string}>}) {
   const {slug} = await params
-  const [customer] = await run<CustomerDetail>(customerBySlug(slug))
+
+  let customer: CustomerDetail | undefined
+  try {
+    ;[customer] = await run<CustomerDetail>(customerBySlug(slug))
+  } catch {
+    return <Unavailable title="Customer" retry={`/customers/${slug}`} />
+  }
+  // A slug that matches nothing is a 404 and not an outage. Only a thrown
+  // query is the database being unreachable; an empty result is an answer.
   if (!customer) notFound()
 
-  const [subscriptions, movements, events] = await Promise.all([
-    run<SubscriptionRow>(customerSubscriptions(customer.id)),
-    run<MovementRow>(customerMovements(customer.id)),
-    run<EventRow>(customerEventFeed(customer.id, FEED_LIMIT)),
-  ])
+  let subscriptions: SubscriptionRow[]
+  let movements: MovementRow[]
+  let events: EventRow[]
+  try {
+    ;[subscriptions, movements, events] = await Promise.all([
+      run<SubscriptionRow>(customerSubscriptions(customer.id)),
+      run<MovementRow>(customerMovements(customer.id)),
+      run<EventRow>(customerEventFeed(customer.id, FEED_LIMIT)),
+    ])
+  } catch {
+    return <Unavailable title={customer.name} retry={`/customers/${slug}`} />
+  }
 
   const churned = customer.churned_at !== null
 

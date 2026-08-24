@@ -4,6 +4,8 @@ import {reportBounds} from '@/metrics/facets.ts'
 import {mrrMonthly, type MrrMonth} from '@/metrics/mrr-series.ts'
 import type {Query} from '@/metrics/sql.ts'
 
+import {Unavailable} from './unavailable.tsx'
+
 import {MovementChart} from './charts/movement-chart.tsx'
 import {MrrChart} from './charts/mrr-chart.tsx'
 
@@ -26,9 +28,9 @@ export default async function Overview() {
   try {
     ;[bounds] = await run<{first_day: string; last_day: string}>(reportBounds())
   } catch {
-    return <Unavailable />
+    return <Unavailable title="Overview" retry="/" />
   }
-  if (!bounds) return <Unavailable />
+  if (!bounds) return <Unavailable title="Overview" retry="/" />
 
   // The report window is the last 24 complete months of the dataset.
   const asAt = bounds.last_day
@@ -38,7 +40,7 @@ export default async function Overview() {
   const from = start.toISOString().slice(0, 10)
 
   const months = await run<MrrMonth>(mrrMonthly(from, asAt))
-  if (months.length === 0) return <Unavailable />
+  if (months.length === 0) return <Unavailable title="Overview" retry="/" />
 
   const first = months[0]!
   const last = months[months.length - 1]!
@@ -151,15 +153,3 @@ function monthName(value: string): string {
  * because nobody visited for an hour is a worse first impression than one that
  * says what happened.
  */
-function Unavailable() {
-  return (
-    <>
-      <h1 className="text-2xl">Overview</h1>
-      <p className="mt-4 max-w-prose text-sm">
-        The database is not answering at the moment, so the figures are not shown. This
-        deployment runs on a free tier that suspends its compute when idle; a refresh usually
-        wakes it.
-      </p>
-    </>
-  )
-}

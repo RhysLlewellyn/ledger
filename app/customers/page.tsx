@@ -18,6 +18,8 @@ import {
 } from '@/metrics/params.ts'
 import type {Query} from '@/metrics/sql.ts'
 
+import {Unavailable} from '../unavailable.tsx'
+
 import {COLUMNS, columnLabel} from './columns.ts'
 import {Filters} from './filters.tsx'
 import {Pagination} from './pagination.tsx'
@@ -43,12 +45,31 @@ export default async function Customers({
 }) {
   const options = parseCustomerParams(await searchParams)
 
-  const [rows, plans, countries, bounds] = await Promise.all([
-    run<CustomerRow>(customerTable(options)),
-    run<PlanFacet>(planFacets()),
-    run<CountryFacet>(countryFacets()),
-    run<{first_day: string; last_day: string}>(reportBounds()),
-  ])
+  /*
+    The four queries in one try.
+
+    This page and the customer detail page were the only two routes without a
+    fallback, and they are the two most likely to arrive as a link in somebody
+    else's inbox. Without this, a request that lands while Neon's compute is
+    suspended renders the framework's own "Application error: a server-side
+    exception has occurred" -- the worst first impression this build can make,
+    on its best page, in exactly the situation it was written for.
+  */
+  let rows: CustomerRow[]
+  let plans: PlanFacet[]
+  let countries: CountryFacet[]
+  let bounds: {first_day: string; last_day: string}[]
+  try {
+    ;[rows, plans, countries, bounds] = await Promise.all([
+      run<CustomerRow>(customerTable(options)),
+      run<PlanFacet>(planFacets()),
+      run<CountryFacet>(countryFacets()),
+      run<{first_day: string; last_day: string}>(reportBounds()),
+    ])
+  } catch {
+    return <Unavailable title="Customers" retry={`/customers${customerHref(options)}`} />
+  }
+  if (!bounds[0]) return <Unavailable title="Customers" retry="/customers" />
 
   // `count(*) over ()` rides along on every row, so the total costs nothing
   // extra — but there are no rows to carry it when nothing matched.
@@ -244,9 +265,35 @@ function EmptyState({
     ...(options.mrrMaxPence != null ? [`MRR is at most ${money(options.mrrMaxPence)}`] : []),
   ]
 
+  /*
+    A revenue range with its ends the wrong way round can never match anything,
+    and listing the two bounds as separate clauses leaves the reader checking
+    six filters to find the one at fault. It is named instead.
+
+    The bounds are not silently swapped. Somebody typed those two numbers, and
+    quietly reinterpreting them would mean the table disagrees with the form
+    that produced it -- which is the one thing the URL contract exists to stop.
+  */
+  const impossibleRange =
+    options.mrrMinPence != null &&
+    options.mrrMaxPence != null &&
+    options.mrrMinPence > options.mrrMaxPence
+
+  // Not the constant 4,000. Every plan facet counts the customers currently on
+  // it, so their sum is the real total, and a re-seeded dataset cannot make
+  // this sentence wrong the way a hard-coded figure could.
+  const everyone = plans.reduce((n, plan) => n + plan.customers, 0)
+
   return (
     <div className="mt-4 border-y border-(--color-rule-2) py-8">
       <h2 className="text-base">No customers match these filters</h2>
+      {impossibleRange && (
+        <p className="mt-3 max-w-prose text-sm">
+          {`The revenue range is inverted: the minimum of ${money(options.mrrMinPence!)} is ` +
+            `above the maximum of ${money(options.mrrMaxPence!)}, so nothing can fall inside ` +
+            'it. Swapping the two would fix it.'}
+        </p>
+      )}
       {active.length > 0 && (
         <>
           <p className="mt-3 text-sm text-(--color-ink-2)">Currently filtering where:</p>
@@ -261,7 +308,7 @@ function EmptyState({
         <a href="/customers" className="inline-block py-1 underline underline-offset-4">
           Clear all filters
         </a>
-        {' to see all 4,000 customers.'}
+        {` to see all ${count(everyone)} customers.`}
       </p>
     </div>
   )

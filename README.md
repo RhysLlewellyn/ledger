@@ -355,6 +355,70 @@ intervals.
 
 ---
 
+## When the database is asleep
+
+This deployment runs on Neon's free tier, which suspends compute after five minutes
+idle. That is the normal state for a link in somebody's inbox, so it is a state the build
+has to be designed for rather than one it can treat as an exception.
+
+**Two of the four routes had no fallback at all**, and they were the two most worth
+linking to. `/` and `/cohorts` each caught their own query failures and rendered a written
+explanation; `/customers` and `/customers/[slug]` had no try block, so a request landing on
+a suspended compute rendered the framework's own *"Application error: a server-side
+exception has occurred"*. All four share one `Unavailable` component now, each keeping its
+own heading — a reader who followed a link to Customers should still be looking at a page
+called Customers, because losing the address as well as the data turns a slow database
+into a wrong one. Verified by stopping Postgres and requesting all four.
+
+The retry is a plain link back to the same URL. There is no client-side JavaScript here to
+re-run a fetch with and there does not need to be: a link to the current address is what a
+retry is, it survives JavaScript being switched off, and it is honest about being a reload.
+
+### Waiting is a designed state
+
+Every navigation in this build is a real document load, so the browser holds the previous
+page on screen until the new one starts rendering. That beats a blank screen and it is
+still not feedback — on a cold compute the old page sits there looking frozen with nothing
+but a tab spinner to say otherwise.
+
+Next streams, so the fix costs no JavaScript. The root layout and a `loading.tsx` fallback
+are flushed as soon as the request arrives; the page replaces them when the query returns.
+Measured against a deliberately delayed query:
+
+```
+TTFB   0.011 s     <- masthead, heading and ruled page
+total  3.042 s     <- the figures
+```
+
+The fallback is ruled paper: hairlines where the rows will be, in the same `--color-rule`
+the tables use, at the same row height. No shimmer, no grey blocks. A printed report before
+the figures are set is not a grey rectangle, it is a ruled page, and the build already owns
+that vocabulary.
+
+CLS stays at 0 across all three pages. That is measured warm, where the query returns
+before the fallback ever paints — a genuinely cold start paints the rules first and then
+swaps, which is a layout change by definition. It is the right trade: the alternative is
+several seconds of a page that looks broken.
+
+### The one client component
+
+`app/error.tsx` is the only `'use client'` file in the build, and it is one because React
+error boundaries are client components by construction — there is no server equivalent. It
+holds no state and reads nothing from the browser; its entire client-side behaviour is a
+reset button, and it costs **1,058 bytes**. Next renders it on the server for an error
+thrown during SSR, so with JavaScript off the message and the link still work and only the
+button is inert, which is why there is a link as well as a button. It shows the error's
+`digest` — the server-side hash that is the only thing connecting what the reader saw to
+what the logs recorded.
+
+This is the backstop, not the mechanism: the four routes catch their own database failures
+themselves, and this is for the rest.
+
+One thing it does not do is set a status code. An outage page returns 200, because a Next
+page component cannot set the response status. It is named here rather than papered over.
+
+---
+
 ## Why there is no chart library
 
 Recharts is the default reach. It brings its own look, its own DOM, and accessibility
