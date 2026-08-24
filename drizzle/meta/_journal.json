@@ -8,6 +8,20 @@
       "when": 1787575267137,
       "tag": "0000_initial_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787576825906,
+      "tag": "0001_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787577300359,
+      "tag": "0002_daily_rollup_triggers",
+      "breakpoints": true
     }
   ]
 }

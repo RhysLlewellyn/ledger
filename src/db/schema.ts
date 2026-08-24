@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -100,23 +101,50 @@ export const customer = pgTable(
     churnedAt: timestamp('churned_at', {withTimezone: true, mode: 'date'}),
     acquisitionChannel: acquisitionChannel('acquisition_channel').notNull(),
   },
-  (t) => [uniqueIndex('customer_slug_key').on(t.slug)],
+  (t) => [
+    uniqueIndex('customer_slug_key').on(t.slug),
+    /**
+     * The signed-up date range filter, and the default sort on the customer
+     * table.
+     *
+     * There is deliberately no index on `country` or `acquisition_channel`.
+     * Both are low-cardinality columns on a four-thousand-row table, where a
+     * sequential scan is genuinely the cheaper plan and Postgres will pick it
+     * whatever is declared here. An index that the planner ignores still costs
+     * a write on every insert — it is not free just because it is unused.
+     */
+    index('customer_signed_up_idx').on(t.signedUpAt),
+  ],
 )
 
-export const subscription = pgTable('subscription', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customer.id, {onDelete: 'cascade'}),
-  planId: uuid('plan_id')
-    .notNull()
-    .references(() => plan.id),
-  startedAt: timestamp('started_at', {withTimezone: true, mode: 'date'}).notNull(),
-  /** Null means running. */
-  endedAt: timestamp('ended_at', {withTimezone: true, mode: 'date'}),
-  seats: integer('seats').notNull(),
-  status: subscriptionStatus('status').notNull(),
-})
+export const subscription = pgTable(
+  'subscription',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id, {onDelete: 'cascade'}),
+    planId: uuid('plan_id')
+      .notNull()
+      .references(() => plan.id),
+    startedAt: timestamp('started_at', {withTimezone: true, mode: 'date'}).notNull(),
+    /** Null means running. */
+    endedAt: timestamp('ended_at', {withTimezone: true, mode: 'date'}),
+    seats: integer('seats').notNull(),
+    status: subscriptionStatus('status').notNull(),
+  },
+  (t) => [
+    /**
+     * "Which plan is this customer on?" is `distinct on (customer_id) … order
+     * by customer_id, started_at desc`, because a plan change ends one
+     * subscription and starts another on the same day. Without this index that
+     * is a sort of every subscription in the business on every page of the
+     * customer table; with it, it is a scan in the order the query already
+     * wanted.
+     */
+    index('subscription_customer_started_idx').on(t.customerId, t.startedAt.desc()),
+  ],
+)
 
 /**
  * The spine. Every headline number is a sum over this table; nothing is stored
@@ -129,22 +157,34 @@ export const subscription = pgTable('subscription', {
  * second source of truth, and the first thing that happens to a second source
  * of truth is that it stops agreeing with the first.
  */
-export const mrrMovement = pgTable('mrr_movement', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customer.id, {onDelete: 'cascade'}),
-  occurredOn: date('occurred_on', {mode: 'string'}).notNull(),
-  kind: movementKind('kind').notNull(),
-  /**
-   * Signed pence. `new`, `expansion` and `reactivation` are positive;
-   * `contraction` and `churn` are negative. The sign is not decoration —
-   * sum(amount_pence) over any window is that window's net movement, with no
-   * case expression and no chance of a sign convention diverging between two
-   * queries that ought to agree.
-   */
-  amountPence: integer('amount_pence').notNull(),
-})
+export const mrrMovement = pgTable(
+  'mrr_movement',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id, {onDelete: 'cascade'}),
+    occurredOn: date('occurred_on', {mode: 'string'}).notNull(),
+    kind: movementKind('kind').notNull(),
+    /**
+     * Signed pence. `new`, `expansion` and `reactivation` are positive;
+     * `contraction` and `churn` are negative. The sign is not decoration —
+     * sum(amount_pence) over any window is that window's net movement, with no
+     * case expression and no chance of a sign convention diverging between two
+     * queries that ought to agree.
+     */
+    amountPence: integer('amount_pence').notNull(),
+  },
+  (t) => [
+    /**
+     * The MRR series reads a date range off this table twice — once for the
+     * balance carried into the window, once for the days inside it.
+     */
+    index('mrr_movement_occurred_on_idx').on(t.occurredOn),
+    /** One account's revenue history, on its own page. */
+    index('mrr_movement_customer_idx').on(t.customerId, t.occurredOn),
+  ],
+)
 
 /**
  * The volume table. A quarter of a million rows across 24 months, and the
@@ -154,15 +194,36 @@ export const mrrMovement = pgTable('mrr_movement', {
  * Nothing on any screen queries inside it; if something did it would want a
  * GIN index, and that is a different build.
  */
-export const event = pgTable('event', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customer.id, {onDelete: 'cascade'}),
-  occurredAt: timestamp('occurred_at', {withTimezone: true, mode: 'date'}).notNull(),
-  kind: text('kind').notNull(),
-  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
-})
+export const event = pgTable(
+  'event',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id, {onDelete: 'cascade'}),
+    occurredAt: timestamp('occurred_at', {withTimezone: true, mode: 'date'}).notNull(),
+    kind: text('kind').notNull(),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+  },
+  (t) => [
+    /**
+     * The index that matters most in this repository.
+     *
+     * Two queries read this table by account: the fifty-row event feed on a
+     * customer page, and the lateral join that decorates each row of the
+     * customer table with a last-seen timestamp. Both are a handful of rows
+     * out of a quarter of a million, and without this index both are a
+     * sequential scan of all of them — fifty sequential scans, in the second
+     * case, one per row on the page.
+     *
+     * The descending second column is not decoration. The feed is
+     * `order by occurred_at desc limit 50`, and a matching index order is the
+     * difference between reading fifty rows and reading every row for that
+     * customer and sorting them.
+     */
+    index('event_customer_occurred_idx').on(t.customerId, t.occurredAt.desc()),
+  ],
+)
 
 /**
  * The one pre-computed table, and it earns its place rather than existing

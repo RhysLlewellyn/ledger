@@ -30,6 +30,22 @@ async function main() {
       `${data.events.length.toLocaleString()} events`,
   )
 
+  /**
+   * The rollup triggers come off for the bulk load and go back on afterwards.
+   *
+   * They are row triggers, and the subscription one recomputes an active
+   * customer count across every day a subscription spans. That is the right
+   * cost for one subscription starting today and an absurd one for four and a
+   * half thousand of them arriving at once: the seed would spend hours
+   * recomputing a column it is about to rebuild in a single statement anyway.
+   * Disabling triggers around a bulk load and reconciling afterwards is what
+   * a loader does; the reconciliation is `refreshRollup`, and a test checks
+   * that what the triggers maintain and what the rebuild produces are the
+   * same table.
+   */
+  await sql`alter table mrr_movement disable trigger user`
+  await sql`alter table subscription disable trigger user`
+
   console.log('truncating…')
   // One statement, so the foreign keys never see an inconsistent moment.
   await sql`
@@ -85,6 +101,9 @@ async function main() {
     kind: e.kind,
     metadata: JSON.stringify(e.metadata),
   }))
+
+  await sql`alter table mrr_movement enable trigger user`
+  await sql`alter table subscription enable trigger user`
 
   console.log('building daily_rollup…')
   const rollupRows = await refreshRollup(sql)
