@@ -37,7 +37,7 @@ pass changed the markup.
 | | Performance | Accessibility | Best practices | SEO | Agentic Browsing |
 |---|---|---|---|---|---|
 | `/` — the overview | **99** | **100** | **100** | **100** | **100** |
-| `/customers` — 4,000 rows, filtered | **100** | **100** | **100** | **100** | **100** |
+| `/customers` — 4,000 rows, filtered | **99** | **100** | **100** | **100** | **100** |
 | `/cohorts` — the retention grid | **99** | **100** | **100** | **100** | **100** |
 | `/customers/[slug]` — one account | **99** | **100** | **100** | 90 | **100** |
 
@@ -54,13 +54,13 @@ you and the one I check first. It is also the number three self-hosted webfonts 
 likely to cost you, and it is zero because `next/font` generates a metric-matched
 fallback — the type does not move when the real face arrives.
 
-TTFB is 13–14 ms and TBT is 17–34 ms. LCP is 2.0–2.2 s, and essentially all of that is
+TTFB is 13–15 ms and TBT is 16–32 ms. LCP is 2.0–2.2 s, and essentially all of that is
 render delay under Lighthouse's simulated mobile throttling rather than the server:
 every one of these pages is rendered per request against Postgres in London, and the
 document arrives in about fifteen milliseconds.
 
 Five runs rather than three because performance is the category that will not sit still.
-The overview scored 100, 99, 99, 99, 99 across those five. Quoting the 100 would have
+The overview scored 97, 99, 99, 99, 99 across those five. Quoting the 100 would have
 been the easier thing to do and it would have been a screenshot rather than a
 measurement.
 
