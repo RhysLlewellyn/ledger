@@ -489,6 +489,31 @@ accessible. So the lines are split by job: `rule` and `rule-2` separate things a
 decorative, `field` outlines inputs and buttons at 3.33:1, and the zero baseline on the
 movement chart — which somebody genuinely needs in order to read it — is drawn in ink.
 
+### The cohort ramp had to earn the sentence written about it
+
+`cohort-grid.tsx` said "the number carries the value and the shade carries the shape".
+The render carried almost none of it. Month 0 is 100% by construction and nothing observed
+falls below about 50%, and the ramp was stretched across the full nominal 0–100% — so it
+spent only its middle third, and forty cohorts of decaying retention arrived as a
+near-uniform blue slab. **A well-argued comment describing something the page does not do
+is worse than no comment**, and this one had been sitting under a screenshot-worthy page
+for the whole build.
+
+It is anchored to the observed minimum and maximum now, so the decay is visible as a shape.
+That is only honest with the endpoints stated, so there is a key: `50% ▁▂▃▄▅ 100% of a
+cohort still paying`. Without it a reader would reasonably read the palest cell as zero.
+Below a five-point spread it falls back to the nominal scale and says so, rather than
+manufacturing contrast out of rounding.
+
+The contrast floor is unchanged, because the cap on the ramp is unchanged: the darkest
+cell still measures 4.88:1 against ink, and `npm run contrast` still asserts it.
+
+**On using only one of the five data colours here:** that is the correct answer rather than
+underuse. A retention ramp is one scale, an MRR line is one series, and the movement bars
+are two signed directions. `data-2` through `data-4` exist for the one chart that genuinely
+has five categories. Spending them elsewhere would be colour without a job, on a build
+whose rule is that colour appears only inside data marks.
+
 The cohort ramp stops at 70% strength rather than 100%, and that number was measured
 rather than chosen. At full strength the cell colour against the ink is 2.5:1 and
 fails. The usual fix is to flip the text to white past a threshold, but the band around

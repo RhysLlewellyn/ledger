@@ -19,6 +19,14 @@ import type {CohortCell} from '@/metrics/cohorts.ts'
  * than "darker than that one", so the number carries the value and the shade
  * carries the shape.
  *
+ * **The ramp is anchored to the values, not to 0–100%.** Month 0 is 100% by
+ * construction and nothing observed falls below about 59%, so a ramp stretched
+ * across the whole nominal range spent only its middle third and rendered as a
+ * near-uniform slab. The comment above used to claim the shade carried the
+ * shape while the render carried almost none of it. It is scaled to the
+ * observed minimum and maximum now, and a key states both endpoints — without
+ * that, a reader would reasonably assume the palest cell meant zero.
+ *
  * **Contrast.** The ramp stops at 70% of full strength rather than 100%, and
  * text stays `--color-ink` throughout. At full strength `#1F5C8B` against
  * `--color-ink` is 2.5:1 and fails; the usual fix is to flip the text to white
@@ -49,6 +57,30 @@ export function CohortGrid({
   const cohorts = [...byCohort.keys()].sort().reverse()
   const offsets = Array.from({length: maxOffset + 1}, (_, i) => i)
 
+  /*
+    The observed range, which is what the shading is scaled across.
+
+    The guard matters: a dataset where every cohort retained the same share
+    would make `hi - lo` zero and turn the ramp into a division by nothing.
+    Below a range of five percentage points there is no shape worth showing
+    either, so it falls back to the nominal scale and the grid goes flat
+    honestly rather than manufacturing contrast out of rounding.
+  */
+  const rates = cells
+    .filter((c) => c.cohort_size > 0)
+    .map((c) => c.retained / c.cohort_size)
+  const observedLo = rates.length > 0 ? Math.min(...rates) : 0
+  const observedHi = rates.length > 0 ? Math.max(...rates) : 1
+  const spread = observedHi - observedLo >= 0.05
+  const lo = spread ? observedLo : 0
+  const hi = spread ? observedHi : 1
+
+  const shade = (retention: number) => {
+    const t = hi === lo ? 1 : (retention - lo) / (hi - lo)
+    const intensity = BASE_INTENSITY + Math.min(Math.max(t, 0), 1) * (MAX_INTENSITY - BASE_INTENSITY)
+    return `color-mix(in srgb, var(--color-data-1) ${(intensity * 100).toFixed(0)}%, var(--color-paper))`
+  }
+
   return (
     <div className="mt-6">
       {/*
@@ -70,6 +102,34 @@ export function CohortGrid({
         somebody who cancelled and came back, and a grid that could not show it would be a
         grid blind to the movement a subscription business most wants to find.
       </p>
+      {/*
+        The key.
+
+        A ramp scaled to its data is only honest if the data's endpoints are
+        stated, and this one had no key at all — the single piece of
+        information encoded visually had no text equivalent anywhere. It sits
+        above the scroller so it is readable at 360px without scrolling a
+        retention grid sideways to find it.
+
+        The swatches are aria-hidden. Every cell prints its own percentage, so
+        the shade is redundant by design and the endpoints either side of the
+        strip are the part worth reading aloud.
+      */}
+      <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-muted)">
+        <span data-numeric>{percent(lo)}</span>
+        <span aria-hidden="true" className="flex">
+          {Array.from({length: 6}, (_, i) => (
+            <span
+              key={i}
+              className="block h-3 w-6 border border-(--color-paper)"
+              style={{backgroundColor: shade(lo + ((hi - lo) * i) / 5)}}
+            />
+          ))}
+        </span>
+        <span data-numeric>{percent(hi)}</span>
+        <span>of a cohort still paying{spread ? '' : ' (too little spread to shade)'}</span>
+      </p>
+
       <Scroller label="Cohort retention grid" describedBy="cohort-note">
       <table className="border-collapse text-xs">
         <caption className="sr-only">
@@ -120,17 +180,12 @@ export function CohortGrid({
                     return <td key={offset} className="py-1" />
                   }
                   const retention = cell.cohort_size === 0 ? 0 : cell.retained / cell.cohort_size
-                  const intensity = BASE_INTENSITY + retention * (MAX_INTENSITY - BASE_INTENSITY)
                   return (
                     <td
                       key={offset}
                       data-numeric
                       className="border border-(--color-paper) px-1 py-1 text-center"
-                      style={{
-                        backgroundColor: `color-mix(in srgb, var(--color-data-1) ${(
-                          intensity * 100
-                        ).toFixed(0)}%, var(--color-paper))`,
-                      }}
+                      style={{backgroundColor: shade(retention)}}
                     >
                       {percent(retention)}
                     </td>
