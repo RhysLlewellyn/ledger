@@ -1,0 +1,49 @@
+@import 'tailwindcss';
+
+/**
+ * Provisional tokens.
+ *
+ * These are the starting values from the brief and they are deliberately not
+ * yet the design. The direction is a printed analytical report -- cool neutral
+ * paper, near-black ink, monospace for every number, hairline rules, and no
+ * colour anywhere outside a data mark -- and it gets derived properly in one
+ * pass once the interface exists, rather than being accreted screen by screen.
+ *
+ * Two rules that are already fixed and are not up for revision in that pass:
+ * light only, because the dark tool in this portfolio is Meridian and two of
+ * them would be one idea; and if a colour appears outside a chart, it is a bug.
+ */
+@theme {
+  --color-paper: #fcfcfb;
+  --color-paper-2: #f4f4f2;
+  --color-rule: #dededa;
+  --color-rule-2: #b9b9b4;
+  --color-ink: #16171a;
+  --color-ink-2: #4c4e54;
+  /* Contrast against both papers is verified before this is used for text. */
+  --color-muted: #74767c;
+
+  /* Data marks only. Never chrome, never text. */
+  --color-data-1: #1f5c8b;
+  --color-data-2: #b4552d;
+  --color-data-3: #4a7a4e;
+  --color-data-4: #7a5c99;
+  --color-data-neg: #a33a32;
+}
+
+/**
+ * Every number in this product is monospace with tabular figures, so that a
+ * column of money lines up on the decimal point and a figure that changes does
+ * not shift the ones around it.
+ */
+@layer base {
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  [data-numeric] {
+    font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
