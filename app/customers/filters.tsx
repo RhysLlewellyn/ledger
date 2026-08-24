@@ -48,7 +48,7 @@ export function Filters({
         {applied > 0 && (
           <Link
             href="/customers"
-            className="underline underline-offset-4"
+            className="inline-block py-1 underline underline-offset-4"
           >
             Clear {applied === 1 ? 'the filter' : `all ${applied} filters`}
           </Link>
@@ -205,14 +205,14 @@ function CheckboxGroup({
           const id = `${name}-${item.value}`
           return (
             <li key={item.value}>
-              <label htmlFor={id} className="flex items-baseline gap-2">
+              <label htmlFor={id} className="flex min-h-6 items-center gap-2">
                 <input
                   id={id}
                   type="checkbox"
                   name={name}
                   value={item.value}
                   defaultChecked={selected.includes(item.value)}
-                  className="accent-(--color-ink)"
+                  className="size-4 shrink-0 accent-(--color-ink)"
                 />
                 <span className="min-w-0 flex-1">{item.label}</span>
                 {item.hint != null && (

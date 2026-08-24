@@ -55,7 +55,8 @@ export function SortHeader({
     >
       <Link
         href={`/customers${customerHref(options, {sort: column, direction: nextDirection})}`}
-        className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
+        // A column heading is a target, and the text alone is 18px tall.
+        className="inline-flex min-h-6 items-center gap-1 underline-offset-4 hover:underline"
       >
         {label}
         <span aria-hidden="true" className="text-(--color-muted)">

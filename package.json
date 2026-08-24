@@ -18,7 +18,8 @@
     "seed": "node --env-file=.env src/db/seed.ts",
     "measure": "node --env-file=.env tools/measure.ts",
     "contrast": "node tools/contrast.ts",
-    "shots": "node tools/screenshots.mjs"
+    "shots": "node tools/screenshots.mjs",
+    "a11y": "node tools/a11y-sweep.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.6",

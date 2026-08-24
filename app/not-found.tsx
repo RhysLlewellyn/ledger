@@ -27,7 +27,7 @@ export default function NotFound() {
         <li>
           <Link
             href="/customers"
-            className="underline underline-offset-4"
+            className="inline-block py-1 underline underline-offset-4"
           >
             Search the customer table →
           </Link>
@@ -35,7 +35,7 @@ export default function NotFound() {
         <li>
           <Link
             href="/"
-            className="underline underline-offset-4"
+            className="inline-block py-1 underline underline-offset-4"
           >
             Back to the overview →
           </Link>

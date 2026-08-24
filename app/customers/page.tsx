@@ -101,7 +101,7 @@ export default async function Customers({
           <a
             href={`/api/export${customerHref(options)}`}
             download
-            className="underline underline-offset-4"
+            className="inline-block py-1 underline underline-offset-4"
           >
             Download all {count(total)} as CSV
           </a>
@@ -228,7 +228,7 @@ function EmptyState({
       <p className="mt-4 text-sm">
         <Link
           href="/customers"
-          className="underline underline-offset-4"
+          className="inline-block py-1 underline underline-offset-4"
         >
           Clear all filters
         </Link>{' '}

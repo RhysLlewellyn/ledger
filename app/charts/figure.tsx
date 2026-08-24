@@ -60,7 +60,7 @@ export function ChartFigure({
         own expanded state.
       */}
       <details className="group mt-3 border-t border-(--color-rule) pt-2">
-        <summary className="inline-flex cursor-pointer items-baseline gap-2 text-sm">
+        <summary className="inline-flex cursor-pointer items-baseline gap-2 py-1 text-sm">
           <span aria-hidden="true" data-numeric className="text-(--color-muted)">
             <span className="group-open:hidden">+</span>
             <span className="hidden group-open:inline">−</span>

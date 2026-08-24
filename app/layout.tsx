@@ -72,7 +72,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
 
         <div className="mx-auto max-w-6xl px-6">
           <header className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-b border-(--color-ink) py-4">
-            <Link href="/" className="text-sm tracking-[0.2em] uppercase">
+            <Link href="/" className="inline-block py-1 text-sm tracking-[0.2em] uppercase">
               Ledger
             </Link>
             <nav aria-label="Sections">
@@ -81,7 +81,9 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="underline-offset-4 hover:underline"
+                      // WCAG 2.2 2.5.8 wants 24x24 of target. A nav link at
+                      // the text's own height is 18.
+                      className="inline-block py-1 underline-offset-4 hover:underline"
                     >
                       {item.label}
                     </Link>
@@ -91,7 +93,14 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
             </nav>
           </header>
 
-          <main id="main" className="py-10">
+          {/*
+            tabIndex={-1} is what makes the skip link work. Without it <main>
+            is not focusable, so the browser scrolls to it and leaves focus at
+            the top of the document -- the next Tab goes back to the second
+            item in the header and the link has done nothing for the person it
+            exists for. The sweep caught this on all seven pages.
+          */}
+          <main id="main" tabIndex={-1} className="py-10 focus-visible:outline-none">
             {children}
           </main>
 
