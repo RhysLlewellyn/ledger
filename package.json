@@ -16,7 +16,7 @@
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down -v",
     "seed": "node --env-file=.env src/db/seed.ts",
-    "measure": "node --env-file=.env tools/measure.mjs"
+    "measure": "node --env-file=.env tools/measure.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.6",

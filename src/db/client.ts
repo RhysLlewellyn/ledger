@@ -1,11 +1,25 @@
-import {drizzle} from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-
-import * as schema from './schema.ts'
 
 /**
  * One connection factory, used by the seed, the measurement harness and the
  * tests.
+ *
+ * There is no ORM in the request path, and that is deliberate rather than an
+ * omission. Drizzle is here for its schema language and its migration
+ * generator — `schema.ts` is the description the migrations are diffed
+ * against, and `drizzle-kit` writes them. But every query this product runs is
+ * an aggregate, a window function or a lateral join written by hand in
+ * `src/metrics`, because that is what a dashboard is; there is no row-mapping
+ * for a query builder to help with, and the measurement harness has to be able
+ * to run the exact statement a page runs and prefix it with `explain`.
+ *
+ * Wrapping this connection in `drizzle()` also has a side effect worth naming,
+ * because it cost an hour: the adapter installs its own type parsers on the
+ * postgres-js instance, and `timestamptz` starts coming back as a string
+ * rather than a `Date` for *every* query on that connection, including the raw
+ * ones. Two libraries disagreeing about what a timestamp is, silently, at the
+ * boundary. Not using the adapter at runtime removes the disagreement rather
+ * than papering over it.
  *
  * `max` matters more here than it usually would. The measurement harness runs
  * the same query repeatedly and compares milliseconds; two connections would
@@ -21,7 +35,7 @@ export function connect(
     connect_timeout: options.connectTimeoutSeconds,
     onnotice: () => {},
   })
-  return {sql, db: drizzle(sql, {schema})}
+  return {sql}
 }
 
 export function requireDatabaseUrl(): string {
@@ -33,5 +47,3 @@ export function requireDatabaseUrl(): string {
   }
   return url
 }
-
-export {schema}
