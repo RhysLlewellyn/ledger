@@ -2,7 +2,10 @@
 
 A subscription billing analytics dashboard for an invented SaaS. Four thousand
 customers, two complete years of billing history, a quarter of a million product
-events, and a claim that it stays fast and stays usable at that volume.
+events — and the point of it is that a data-dense interface stays fast and stays
+usable at that volume. Every dashboard query is under 100 ms at p95 against the
+deployed database, Lighthouse is 97+ on all five categories with CLS at 0, and axe
+finds nothing across seven pages.
 
 **Live:** https://ledger-rhys-llewellyn1.vercel.app
 
@@ -22,6 +25,48 @@ JavaScript holding any state**.
 > this portfolio that pass found two defects nothing mechanical had seen. Until it is
 > done, treat the accessibility claim here as "mechanically verified" rather than
 > "tested with a screen reader".
+
+---
+
+## Lighthouse
+
+Lighthouse 13.4.1, mobile preset, run against the deployed URL rather than a local
+build. Median of five runs per page.
+
+| | Performance | Accessibility | Best practices | SEO | Agentic Browsing |
+|---|---|---|---|---|---|
+| `/` — the overview | **99** | **100** | **100** | **100** | **100** |
+| `/customers` — 4,000 rows, filtered | **97** | **100** | **100** | **100** | **100** |
+| `/cohorts` — the retention grid | **98** | **100** | **100** | **100** | **100** |
+
+**CLS is 0 on all three**, which is the number a layout change is most likely to cost
+you and the one I check first. It is also the number three self-hosted webfonts are most
+likely to cost you, and it is zero because `next/font` generates a metric-matched
+fallback — the type does not move when the real face arrives.
+
+TTFB is 12–15 ms and TBT is 32–50 ms. LCP is 2.1–2.2 s, and essentially all of that is
+render delay under Lighthouse's simulated mobile throttling rather than the server:
+every one of these pages is rendered per request against Postgres in London, and the
+document arrives in about fifteen milliseconds.
+
+Five runs rather than three because performance is the category that will not sit still.
+The overview scored 100, 97, 97, 99, 99 across those five. Quoting the 100 would have
+been the easier thing to do and it would have been a screenshot rather than a
+measurement.
+
+**These were taken warm.** Neon's free tier suspends compute after five minutes idle, so
+a genuinely cold first request pays several hundred milliseconds before Postgres answers
+anything. That is a property of the tier rather than of the queries, and a number
+measured cold would be measuring the tier.
+
+Agentic Browsing is the fifth category in Lighthouse 13, replacing PWA. It scores what
+an agent rather than a person can make of the page: the accessibility tree it would have
+to navigate, layout stability, and whether the site publishes an
+[llms.txt](https://ledger-rhys-llewellyn1.vercel.app/llms.txt). Ledger's is generated
+from the same rollup the overview reads, so it cannot drift into confidently stating last
+month's numbers — and its first paragraph says the company is invented, so an agent
+researching real subscription-analytics tools on somebody's behalf can tell in one
+sentence and stop.
 
 ---
 
