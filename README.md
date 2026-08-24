@@ -7,7 +7,7 @@ usable at that volume. Every dashboard query is under 100 ms at p95 against the
 deployed database, Lighthouse is 97+ on all five categories with CLS at 0, and axe
 finds nothing across seven pages.
 
-**Live:** https://ledger-rhys-llewellyn1.vercel.app
+**Live:** https://ledger-beta-wheat.vercel.app
 
 Ledger is not a real company and none of the four thousand customers exist. It is
 one of my own demo builds, not client work, and nothing on the site is a photograph
@@ -62,7 +62,7 @@ measured cold would be measuring the tier.
 Agentic Browsing is the fifth category in Lighthouse 13, replacing PWA. It scores what
 an agent rather than a person can make of the page: the accessibility tree it would have
 to navigate, layout stability, and whether the site publishes an
-[llms.txt](https://ledger-rhys-llewellyn1.vercel.app/llms.txt). Ledger's is generated
+[llms.txt](https://ledger-beta-wheat.vercel.app/llms.txt). Ledger's is generated
 from the same rollup the overview reads, so it cannot drift into confidently stating last
 month's numbers — and its first paragraph says the company is invented, so an agent
 researching real subscription-analytics tools on somebody's behalf can tell in one
