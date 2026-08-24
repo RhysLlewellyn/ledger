@@ -10,10 +10,10 @@
  * listening goes on the parts that actually need ears.
  *
  * Ledger's version adds the probes this build's claims need. The customer
- * table sorts by link and announces through `aria-sort`, the result count is a
- * live region, and every chart carries its numbers in a real table behind a
- * native disclosure. Each of those is a yes/no a machine can answer, and each
- * of them is a claim the outreach makes.
+ * table sorts by link and announces through `aria-sort`, the result count is
+ * reached before the filter panel that produced it, and every chart carries
+ * its numbers in a real table behind a native disclosure. Each of those is a
+ * yes/no a machine can answer, and each of them is a claim the outreach makes.
  *
  * Usage: node tools/a11y-sweep.mjs [baseUrl]
  * Needs Chrome installed and the dev or production server running.
@@ -272,8 +272,8 @@ const HEADINGS = String.raw`Array.from(document.querySelectorAll('h1,h2,h3,h4,h5
  *
  * Each of these is something the outreach says and something a machine can
  * check: tables are real tables with captions and scoped headers, exactly one
- * column advertises a sort, the result count is a polite live region, and the
- * chart numbers are reachable as a table.
+ * column advertises a sort, the result count is reached before the filter
+ * panel rather than after it, and the chart numbers are reachable as a table.
  */
 const STRUCTURE = String.raw`(() => {
   const tables = Array.from(document.querySelectorAll('table')).map((t) => ({
@@ -290,10 +290,32 @@ const STRUCTURE = String.raw`(() => {
     value: th.getAttribute('aria-sort'),
   }))
 
-  const live = Array.from(document.querySelectorAll('[aria-live]')).map((el) => ({
-    politeness: el.getAttribute('aria-live'),
-    text: el.textContent.trim().replace(/\s+/g, ' ').slice(0, 80),
-  }))
+  /*
+    Where the result count sits, in document order, relative to the filter
+    form.
+
+    This replaced a probe that recorded every aria-live region on the page.
+    That probe passed for weeks on a count that was never once announced:
+    applying a filter submits a GET form, the document is replaced, and a live
+    region on a freshly loaded page has nothing to announce. Checking that the
+    attribute is present measures the marking rather than the behaviour.
+
+    Position is the thing that actually decides whether the reader meets the
+    answer, because a screen reader reads a new page from the top. So the
+    check is now the ordering, which is falsifiable.
+  */
+  const countEl = Array.from(document.querySelectorAll('main p')).find((el) =>
+    /customers? match|No customers match/.test(el.textContent),
+  )
+  const form = document.querySelector('main form')
+  const resultCount = countEl
+    ? {
+        text: countEl.textContent.trim().replace(/\s+/g, ' ').slice(0, 90),
+        beforeFilters: form
+          ? !!(countEl.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING)
+          : null,
+      }
+    : null
 
   const figures = Array.from(document.querySelectorAll('figure')).map((f) => {
     const img = f.querySelector('[role="img"]')
@@ -314,7 +336,7 @@ const STRUCTURE = String.raw`(() => {
   return {
     tables,
     sorted,
-    live,
+    resultCount,
     figures,
     // Structure a screen reader navigates by.
     landmarks: {

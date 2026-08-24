@@ -1,0 +1,9 @@
+﻿# tab-order-overview  The order a keyboard user meets the overview in, and what each stop says.  URL: http://localhost:3003/ Keys: {TAB} {TAB} {TAB} {TAB} {TAB} {TAB} {TAB} {TAB}  --- 
+banner landmark', 'LEDGER', 'same page', 'link
+Sections', 'navigation landmark', 'list', 'with 3 items', 'Overview', 'same page', 'link
+Customers', 'link
+Cohorts', 'link
+main landmark', 'figure', 'View the 24 monthly figures as a table', 'button', 'collapsed
+figure', 'View the 24 months of movement as a table', 'button', 'collapsed
+navigation landmark', 'list', 'with 2 items', 'Retention by signup month →', 'link
+All 4,000 customers →', 'link

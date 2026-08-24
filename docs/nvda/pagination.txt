@@ -1,0 +1,12 @@
+﻿# pagination  The range and the page number are the only way to know where you are.  URL: http://localhost:3003/customers?page=2 Keys: ^{END} {UP} {UP} {UP} {UP} {UP} {UP} {UP} {UP} {UP} {UP}  --- 
+clickable
+content info landmark', 'product and not client work.
+billing history are generated data, and none of them exist. It is a demonstration build, not a real 
+Ledger is an invented subscription business. The four thousand companies, their plans and their 
+main landmark', 'Customer table pages', 'navigation landmark', 'link', 'Next →
+51–100 of 4,000, page 2 of 80
+link', '← Previous
+table', 'with 51 rows and 9 columns', 'Orchardleigh Works Pty', 'row 51', 'Last seen', 'column 9', '29 Jul 2026
+Signed up', 'column 8', '28 Feb 2024
+MRR', 'column 7', '£6,188
+Seats', 'column 6', '52

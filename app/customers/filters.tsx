@@ -1,6 +1,4 @@
-import Link from 'next/link'
-
-import {country as countryName, humanise, isoDay} from '@/format.ts'
+import {count, country as countryName, humanise, isoDay} from '@/format.ts'
 import type {CustomerQueryOptions} from '@/metrics/customers.ts'
 import type {CountryFacet, PlanFacet} from '@/metrics/facets.ts'
 import {activeFilterCount, CHANNELS, customerHref, STATUSES} from '@/metrics/params.ts'
@@ -46,12 +44,12 @@ export function Filters({
       <div className="flex items-baseline justify-between gap-4">
         <h2 className="text-base">Filters</h2>
         {applied > 0 && (
-          <Link
+          <a
             href="/customers"
             className="inline-block py-1 underline underline-offset-4"
           >
             Clear {applied === 1 ? 'the filter' : `all ${applied} filters`}
-          </Link>
+          </a>
         )}
       </div>
 
@@ -205,6 +203,21 @@ function CheckboxGroup({
           const id = `${name}-${item.value}`
           return (
             <li key={item.value}>
+              {/*
+                The count is described, not named.
+
+                It used to sit inside the <label>, which made it part of the
+                checkbox's accessible name, and NVDA announced the row as
+                "Starter1355" -- the plan and the number run together, and the
+                number never says what it counts. Sighted readers get the
+                separation from the layout; nobody else did.
+
+                So the visible figure is hidden from the reader and a full
+                sentence is attached with aria-describedby instead. A
+                description is announced after the name and after the state,
+                which is the right order for a number that qualifies a choice
+                rather than identifying it.
+              */}
               <label htmlFor={id} className="flex min-h-6 items-center gap-2">
                 <input
                   id={id}
@@ -212,15 +225,21 @@ function CheckboxGroup({
                   name={name}
                   value={item.value}
                   defaultChecked={selected.includes(item.value)}
+                  aria-describedby={item.hint != null ? `${id}-count` : undefined}
                   className="size-4 shrink-0 accent-(--color-ink)"
                 />
                 <span className="min-w-0 flex-1">{item.label}</span>
                 {item.hint != null && (
-                  <span data-numeric className="text-xs text-(--color-muted)">
-                    {item.hint}
+                  <span aria-hidden="true" data-numeric className="text-xs text-(--color-muted)">
+                    {count(item.hint)}
                   </span>
                 )}
               </label>
+              {item.hint != null && (
+                <span id={`${id}-count`} className="sr-only">
+                  {`${count(item.hint)} ${item.hint === 1 ? 'customer' : 'customers'}`}
+                </span>
+              )}
             </li>
           )
         })}

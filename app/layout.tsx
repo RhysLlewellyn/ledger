@@ -1,7 +1,5 @@
 import type {Metadata} from 'next'
 import {IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Serif} from 'next/font/google'
-import Link from 'next/link'
-
 import './globals.css'
 
 /**
@@ -72,21 +70,21 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
 
         <div className="mx-auto max-w-6xl px-6">
           <header className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-b border-(--color-ink) py-4">
-            <Link href="/" className="inline-block py-1 text-sm tracking-[0.2em] uppercase">
+            <a href="/" className="inline-block py-1 text-sm tracking-[0.2em] uppercase">
               Ledger
-            </Link>
+            </a>
             <nav aria-label="Sections">
               <ul className="flex gap-6 text-sm">
                 {NAV.map((item) => (
                   <li key={item.href}>
-                    <Link
+                    <a
                       href={item.href}
                       // WCAG 2.2 2.5.8 wants 24x24 of target. A nav link at
                       // the text's own height is 18.
                       className="inline-block py-1 underline-offset-4 hover:underline"
                     >
                       {item.label}
-                    </Link>
+                    </a>
                   </li>
                 ))}
               </ul>

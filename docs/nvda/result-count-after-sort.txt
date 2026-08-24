@@ -1,0 +1,13 @@
+﻿# result-count-after-sort  Does sorting the table tell the reader anything happened?  URL: http://localhost:3003/customers Keys: t k {ENTER} {PAUSE:8000} ^{HOME} t  --- 
+main landmark', 'Customers, sorted by MRR descending. Showing 50 of 4,000.', 'table', 'with 51 rows and 9 columns', 'caption', 'Customers, sorted by MRR descending. Showing 50 of 4,000.
+row 1', 'column 1', 'Customer', 'link
+Customers — Ledger'
+CallbackCommand(name=say-all:lineReached), 'same page', 'link', 'Skip to content', CallbackCommand(name=say-all:lineReached)]
+banner landmark', 'link', 'LEDGER', CallbackCommand(name=say-all:lineReached)]
+Sections', 'navigation landmark', 'list', 'with 3 items', 'link', 'Overview', CallbackCommand(name=say-all:lineReached)]
+link', 'Customers', CallbackCommand(name=say-all:lineReached)]
+link', 'Cohorts', CallbackCommand(name=say-all:lineReached), 'out of list
+main landmark', 'heading', 'level 1', 'Customers', CallbackCommand(name=say-all:lineReached)]
+Every filter, sort and page is in the address bar, and every one of them is applied by Postgres ', CallbackCommand(name=say-all:lineReached), 'rather than in the browser. Copy the URL and you have copied the view.
+same page', 'link', 'Skip to content
+main landmark', 'Customers, sorted by Customer ascending. Showing 50 of 4,000.', 'table', 'with 51 rows and 9 columns', 'caption', 'Customers, sorted by Customer ascending. Showing 50 of 4,000.

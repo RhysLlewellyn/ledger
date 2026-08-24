@@ -62,23 +62,28 @@ export default async function Cohorts() {
 
       {finding && (
         <p className="mt-6 max-w-prose text-sm">
-          Of the customers who signed up in <strong>{monthLabel(finding.cohort)}</strong>,{' '}
-          <strong>{percent(finding.atSix)}</strong> were still paying six months later and{' '}
-          <strong>{percent(finding.atTwelve)}</strong> after a year. Across every cohort old
-          enough to have one, month-six retention runs between{' '}
-          <strong>{percent(finding.minSix)}</strong> and{' '}
-          <strong>{percent(finding.maxSix)}</strong>, and the difference is mostly
-          acquisition channel: cohorts weighted towards paid search churn roughly three times
-          as fast as those weighted towards referrals.
+          Of the customers who signed up in <strong>{monthLabel(finding.cohort)}</strong>
+          {', '}
+          <strong>{percent(finding.atSix)}</strong>
+          {' were still paying six months later and '}
+          <strong>{percent(finding.atTwelve)}</strong>
+          {' after a year. Across every cohort old enough to have one, month-six retention ' +
+            'runs between '}
+          <strong>{percent(finding.minSix)}</strong>
+          {' and '}
+          <strong>{percent(finding.maxSix)}</strong>
+          {', and the difference is mostly acquisition channel: cohorts weighted towards ' +
+            'paid search churn roughly three times as fast as those weighted towards ' +
+            'referrals.'}
         </p>
       )}
 
       <CohortGrid cells={cells} maxOffset={MAX_OFFSET} />
 
       <p className="mt-6 max-w-prose text-xs text-(--color-muted)">
-        <span data-numeric>{count(new Set(cells.map((c) => c.cohort_month)).size)}</span>{' '}
-        cohorts. Cells left blank are months that have not happened yet for that cohort;
-        rendering them as 0% is the single most common way a retention grid misleads.
+        <span data-numeric>{count(new Set(cells.map((c) => c.cohort_month)).size)}</span>
+        {' cohorts. Cells left blank are months that have not happened yet for that cohort; ' +
+          'rendering them as 0% is the single most common way a retention grid misleads.'}
       </p>
     </>
   )

@@ -60,12 +60,21 @@ export function MrrChart({months}: {months: readonly MrrMonth[]}) {
       }
       caption={
         <>
-          MRR grew from <strong>{money(first.mrr_pence)}</strong> to{' '}
-          <strong>{money(last.mrr_pence)}</strong> over {months.length} months, and net movement
-          was positive in every one of them. Growth is decelerating even so: month on month it
-          fell from {(earlyGrowth * 100).toFixed(1)}% early in the window to{' '}
-          {(lateGrowth * 100).toFixed(1)}% at the end, which is the bend in the line rather
-          than anything the totals show.
+          {/*
+            {' to '} rather than `to{' '}` at the end of a line. A text node
+            holding nothing but whitespace is dropped when Chrome computes the
+            accessibility text, so the second form renders "to £3,439,147" and
+            a screen reader reads "to£3,439,147". Keeping the word and its
+            spaces in one node is the whole fix.
+          */}
+          MRR grew from <strong>{money(first.mrr_pence)}</strong>
+          {' to '}
+          <strong>{money(last.mrr_pence)}</strong>
+          {` over ${months.length} months, and net movement was positive in every one of ` +
+            `them. Growth is decelerating even so: month on month it fell from ` +
+            `${(earlyGrowth * 100).toFixed(1)}% early in the window to ` +
+            `${(lateGrowth * 100).toFixed(1)}% at the end, which is the bend in the line ` +
+            `rather than anything the totals show.`}
         </>
       }
       tableSummary={`View the ${months.length} monthly figures as a table`}

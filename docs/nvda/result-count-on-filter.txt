@@ -1,0 +1,13 @@
+﻿# result-count-on-filter  Claim 3: applying a filter announces the count without going looking for it.  URL: http://localhost:3003/customers Keys: x   ^{END} +b {ENTER} {PAUSE:8000}  --- 
+main landmark', 'form', 'Plan', 'grouping', 'list', 'with 5 items', 'Starter', 'check box', 'not checked', '1,355 customers
+checked
+out of list', 'out of grouping', 'out of form', 'clickable
+main landmark', 'form', 'Apply filters', 'button
+Customers — Ledger'
+CallbackCommand(name=say-all:lineReached), 'same page', 'link', 'Skip to content', CallbackCommand(name=say-all:lineReached)]
+banner landmark', 'link', 'LEDGER', CallbackCommand(name=say-all:lineReached)]
+Sections', 'navigation landmark', 'list', 'with 3 items', 'link', 'Overview', CallbackCommand(name=say-all:lineReached)]
+link', 'Customers', CallbackCommand(name=say-all:lineReached)]
+link', 'Cohorts', CallbackCommand(name=say-all:lineReached), 'out of list
+main landmark', 'heading', 'level 1', 'Customers', CallbackCommand(name=say-all:lineReached)]
+Every filter, sort and page is in the address bar, and every one of them is applied by Postgres ', CallbackCommand(name=say-all:lineReached), 'rather than in the browser. Copy the URL and you have copied the view.

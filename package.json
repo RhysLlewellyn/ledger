@@ -19,7 +19,8 @@
     "measure": "node --env-file=.env tools/measure.ts",
     "contrast": "node tools/contrast.ts",
     "shots": "node tools/screenshots.mjs",
-    "a11y": "node tools/a11y-sweep.mjs"
+    "a11y": "node tools/a11y-sweep.mjs",
+    "nvda": "powershell -NoProfile -File tools/nvda-pass.ps1"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.6",

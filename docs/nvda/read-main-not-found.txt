@@ -1,0 +1,4 @@
+﻿# read-main-not-found  The 404 as one announcement.  URL: http://localhost:3003/no-such-page Keys: {DOWN} {UP} {ENTER}  --- 
+banner landmark', 'link', 'LEDGER
+same page', 'link', 'Skip to content
+main landmark', 'Not found', 'heading', 'level 1', 'There is nothing at this address. If you followed a link to a customer, the reference may be wrong — customer pages are addressed by a slug like ', '/customers/harlow-analytics-ltd', ', and the table is the reliable way to reach one.', 'list', 'Search the customer table →', 'link', 'Back to the overview →

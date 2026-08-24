@@ -1,0 +1,10 @@
+﻿# csv-download  Claim 6: the export link says what it will do before it is pressed.  URL: http://localhost:3003/customers?country=GB Keys: k k k k k k k k k  --- 
+banner landmark', 'LEDGER', 'link
+Sections', 'navigation landmark', 'list', 'with 3 items', 'Overview', 'link
+Customers', 'link
+Cohorts', 'link
+main landmark', 'Download all 1,085 as CSV', 'link
+form', 'Clear all 2 filters', 'link
+Customers, sorted by MRR descending. Showing 50 of 1,085.', 'table', 'with 51 rows and 9 columns', 'row 1', 'column 1', 'Customer', 'link
+column 2', 'Plan', 'link
+column 3', 'Status', 'link

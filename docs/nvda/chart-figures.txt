@@ -1,0 +1,4 @@
+﻿# chart-figures  Claim 2: the figure announces its shape, and the SVG internals are silent.  URL: http://localhost:3003/ Keys: g g g  --- 
+main landmark', 'figure', 'Line chart of monthly recurring revenue across 24 months, rising steadily from £818,365 to £3,439,147. Beneath it, bars showing net revenue movement each month, positive in every month. The line bends flatter towards the right as month-on-month growth slows.', 'graphic
+figure', 'Stacked bar chart of monthly revenue movement over 24 months. New business and expansion sit above a zero line and churn and contraction below it. Both stacks grow over the window, and the bars above the line are taller than those below it in every month.', 'graphic
+no next graphic

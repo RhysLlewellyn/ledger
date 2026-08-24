@@ -1,0 +1,9 @@
+﻿# chart-disclosure  Claim 1: the disclosure announces its expanded state and opens a real table.  URL: http://localhost:3003/ Keys: {TAB} {TAB} {TAB} {TAB} {TAB} {ENTER} {DOWN} {DOWN}  --- 
+banner landmark', 'LEDGER', 'same page', 'link
+Sections', 'navigation landmark', 'list', 'with 3 items', 'Overview', 'same page', 'link
+Customers', 'link
+Cohorts', 'link
+main landmark', 'figure', 'View the 24 monthly figures as a table', 'button', 'collapsed
+expanded
+table', 'with 25 rows and 6 columns', 'caption', 'Closing monthly recurring revenue, net movement, active customers, new customers and churned 
+customers, for each month of the report window.

@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 import type {CustomerQueryOptions, SortColumn} from '@/metrics/customers.ts'
 import {customerHref} from '@/metrics/params.ts'
 
@@ -19,6 +17,14 @@ import {customerHref} from '@/metrics/params.ts'
  * navigation: it changes the URL, it goes in the history, and the back button
  * has to undo it. A button posting a form would need JavaScript to do the same
  * job worse.
+ *
+ * It is a plain `<a>` rather than a `next/link`, and that is an accessibility
+ * decision rather than a stylistic one. `next/link` navigates without tearing
+ * the document down, so a screen reader is told nothing at all: pressing Enter
+ * on this heading re-sorted four thousand rows and NVDA said nothing for the
+ * eight seconds the transcript recorded. A real navigation announces the new
+ * page and starts reading it. There is no client state on this page to
+ * preserve, so the soft navigation was buying nothing and costing that.
  *
  * The arrow is `aria-hidden`. It repeats what `aria-sort` already says, and a
  * screen reader announcing "down arrow" after "descending" is the same fact
@@ -53,7 +59,7 @@ export function SortHeader({
         numeric ? 'text-right' : 'text-left'
       }`}
     >
-      <Link
+      <a
         href={`/customers${customerHref(options, {sort: column, direction: nextDirection})}`}
         // A column heading is a target, and the text alone is 18px tall.
         className="inline-flex min-h-6 items-center gap-1 underline-offset-4 hover:underline"
@@ -62,7 +68,7 @@ export function SortHeader({
         <span aria-hidden="true" className="text-(--color-muted)">
           {isSorted ? (direction === 'asc' ? '▲' : '▼') : '•'}
         </span>
-      </Link>
+      </a>
     </th>
   )
 }

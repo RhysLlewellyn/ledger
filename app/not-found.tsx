@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 /**
  * A real 404.
  *
@@ -18,27 +16,27 @@ export default function NotFound() {
     <>
       <h1 className="text-2xl">Not found</h1>
       <p className="mt-4 max-w-prose text-sm">
-        There is nothing at this address. If you followed a link to a customer, the reference
-        may be wrong — customer pages are addressed by a slug like{' '}
-        <code className="text-(--color-ink-2)">/customers/harlow-analytics-ltd</code>, and the
-        table is the reliable way to reach one.
+        {'There is nothing at this address. If you followed a link to a customer, the ' +
+          'reference may be wrong — customer pages are addressed by a slug like '}
+        <code className="text-(--color-ink-2)">/customers/harlow-analytics-ltd</code>
+        {', and the table is the reliable way to reach one.'}
       </p>
       <ul className="mt-6 flex flex-wrap gap-6 text-sm">
         <li>
-          <Link
+          <a
             href="/customers"
             className="inline-block py-1 underline underline-offset-4"
           >
             Search the customer table →
-          </Link>
+          </a>
         </li>
         <li>
-          <Link
+          <a
             href="/"
             className="inline-block py-1 underline underline-offset-4"
           >
             Back to the overview →
-          </Link>
+          </a>
         </li>
       </ul>
     </>

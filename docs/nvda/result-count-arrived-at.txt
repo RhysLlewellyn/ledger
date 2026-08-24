@@ -1,0 +1,41 @@
+﻿# result-count-arrived-at  Claim 3, read directly: how far a reader travels to reach the count.  URL: http://localhost:3003/customers?country=GB&status=active Keys: {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN} {DOWN}  --- 
+banner landmark', 'link', 'LEDGER
+Sections', 'navigation landmark', 'list', 'with 3 items', 'link', 'Overview
+link', 'Customers
+link', 'Cohorts
+out of list', 'main landmark', 'heading', 'level 1', 'Customers
+Every filter, sort and page is in the address bar, and every one of them is applied by Postgres 
+rather than in the browser. Copy the URL and you have copied the view.
+1,085 customers match all 2 filters applied.
+link', 'Download all 1,085 as CSV
+form', 'heading', 'level 2', 'Filters
+link', 'Clear all 2 filters
+grouping', 'Plan
+list', 'with 5 items', 'check box', 'not checked
+Starter
+1,355 customers
+check box', 'not checked
+Team
+1,376 customers
+check box', 'not checked
+Pro (legacy) · retired
+38 customers
+check box', 'not checked
+Business
+859 customers
+check box', 'not checked
+Enterprise
+372 customers
+out of list', 'out of grouping', 'grouping', 'Status
+list', 'with 3 items', 'check box', 'checked
+Active
+check box', 'not checked
+Cancelled
+check box', 'not checked
+Paused
+out of list', 'out of grouping', 'grouping', 'Channel
+list', 'with 5 items', 'check box', 'not checked
+Organic
+check box', 'not checked
+Paid search
+check box', 'not checked

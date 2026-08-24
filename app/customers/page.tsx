@@ -1,5 +1,4 @@
 import type {Metadata} from 'next'
-import Link from 'next/link'
 
 import {getSql} from '@/db/index.ts'
 import {count, country as countryName, day, humanise, money} from '@/format.ts'
@@ -19,6 +18,7 @@ import {
 } from '@/metrics/params.ts'
 import type {Query} from '@/metrics/sql.ts'
 
+import {COLUMNS, columnLabel} from './columns.ts'
 import {Filters} from './filters.tsx'
 import {Pagination} from './pagination.tsx'
 import {SortHeader} from './sort-header.tsx'
@@ -65,49 +65,67 @@ export default async function Customers({
         </p>
       </header>
 
-      <Filters options={options} plans={plans} countries={countries} bounds={bounds[0]!} />
-
       {/*
-        The count is the page's answer to "did that do anything?", so it is a
-        live region: after a filter it is announced without the reader having
-        to go looking for it. `polite` rather than `assertive` because it is
-        the result of something they just did, not an interruption.
-      */}
-      <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-      <p aria-live="polite" className="text-sm">
-        {total === 0 ? (
-          'No customers match'
-        ) : (
-          <>
-            <span data-numeric>{count(total)}</span>{' '}
-            {total === 1 ? 'customer matches' : 'customers match'}
-          </>
-        )}
-        {applied === 0
-          ? ' — no filters applied'
-          : applied === 1
-            ? ' the filter applied'
-            : ` all ${applied} filters applied`}
-        .
-      </p>
+        The count sits above the filter panel, not below it, and that is the
+        whole of what makes it reachable.
 
-      {/*
-        The export is the page's own query string with a different path, so
-        the file and the screen cannot disagree about what the current view
-        is. It downloads every matching row, not the fifty on screen.
+        It was written as an `aria-live="polite"` region on the theory that a
+        filter would announce its own result. It never did and it never could:
+        applying a filter submits a GET form, which loads a new document, and a
+        live region only announces a change made to a region that is already on
+        the page. NVDA reads the new page from the top instead. The attribute
+        has gone rather than been left in place looking helpful -- an ARIA
+        attribute that cannot fire is a claim, not a feature, and this build
+        argues that about other people's markup.
+
+        What replaces it is position. The question was never what the region is
+        marked as, it is how far down the page the answer sits, and below the
+        panel it was thirty checkboxes deep. Here it is the first thing after
+        the heading, which is where the answer to "did that do anything?"
+        belongs for everybody and not only for a reader.
+
+        The export link travels with it. It downloads every matching row rather
+        than the fifty on screen, and it is the page's own query string with a
+        different path, so the file and the screen cannot disagree about what
+        the current view is.
       */}
-      {total > 0 && (
+      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="text-sm">
-          <a
-            href={`/api/export${customerHref(options)}`}
-            download
-            className="inline-block py-1 underline underline-offset-4"
-          >
-            Download all {count(total)} as CSV
-          </a>
+          {total === 0 ? (
+            'No customers match'
+          ) : (
+            <>
+              {/*
+                The leading space belongs to this text node rather than
+                standing on its own. A whitespace-only node between two
+                elements is dropped from the accessibility text -- that is
+                what made the table caption read "Showing50 of 4,000".
+              */}
+              <span data-numeric>{count(total)}</span>
+              {total === 1 ? ' customer matches' : ' customers match'}
+            </>
+          )}
+          {applied === 0
+            ? ' — no filters applied.'
+            : applied === 1
+              ? ' the filter applied.'
+              : ` all ${applied} filters applied.`}
         </p>
-      )}
+
+        {total > 0 && (
+          <p className="text-sm">
+            <a
+              href={`/api/export${customerHref(options)}`}
+              download
+              className="inline-block py-1 underline underline-offset-4"
+            >
+              Download all {count(total)} as CSV
+            </a>
+          </p>
+        )}
       </div>
+
+      <Filters options={options} plans={plans} countries={countries} bounds={bounds[0]!} />
 
       {total === 0 ? (
         <EmptyState options={options} plans={plans} />
@@ -115,22 +133,36 @@ export default async function Customers({
         <>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[56rem] border-collapse text-sm">
+              {/*
+                One interpolated string, not a dozen JSX children.
+
+                This caption used to be written as text interleaved with {' '}
+                separators. It rendered correctly and NVDA read it as
+                "sorted by Mrrdescending. Showing50 of 4,000." A whitespace-only
+                text node standing between two elements is collapsed away when
+                Chrome computes the accessibility text, even though layout keeps
+                it -- so the page looked right and sounded wrong, which is the
+                one kind of defect no automated check catches. Building the
+                sentence in JavaScript puts the spaces inside a text node where
+                nothing can drop them.
+              */}
               <caption className="sr-only">
-                Customers, sorted by {humanise(options.sort)}{' '}
-                {options.direction === 'asc' ? 'ascending' : 'descending'}. Showing{' '}
-                {rows.length} of {count(total)}.
+                {`Customers, sorted by ${columnLabel(options.sort)} ` +
+                  `${options.direction === 'asc' ? 'ascending' : 'descending'}. ` +
+                  `Showing ${count(rows.length)} of ${count(total)}.`}
               </caption>
               <thead>
                 <tr>
-                  <SortHeader column="name" label="Customer" options={options} />
-                  <SortHeader column="plan" label="Plan" options={options} />
-                  <SortHeader column="status" label="Status" options={options} />
-                  <SortHeader column="country" label="Country" options={options} />
-                  <SortHeader column="channel" label="Channel" options={options} />
-                  <SortHeader column="seats" label="Seats" options={options} numeric initial="desc" />
-                  <SortHeader column="mrr" label="MRR" options={options} numeric initial="desc" />
-                  <SortHeader column="signed_up" label="Signed up" options={options} initial="desc" />
-                  <SortHeader column="last_seen" label="Last seen" options={options} initial="desc" />
+                  {COLUMNS.map((c) => (
+                    <SortHeader
+                      key={c.column}
+                      column={c.column}
+                      label={c.label}
+                      options={options}
+                      numeric={c.numeric}
+                      initial={c.initial}
+                    />
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -143,12 +175,12 @@ export default async function Customers({
                       text in a cell impossible.
                     */}
                     <th scope="row" className="py-2 pr-4 text-left font-normal">
-                      <Link
+                      <a
                         href={`/customers/${row.slug}`}
                         className="underline underline-offset-4"
                       >
                         {row.name}
-                      </Link>
+                      </a>
                     </th>
                     <td className="py-2 pr-4">{row.plan_name}</td>
                     <td className="py-2 pr-4">{humanise(row.status)}</td>
@@ -226,13 +258,10 @@ function EmptyState({
         </>
       )}
       <p className="mt-4 text-sm">
-        <Link
-          href="/customers"
-          className="inline-block py-1 underline underline-offset-4"
-        >
+        <a href="/customers" className="inline-block py-1 underline underline-offset-4">
           Clear all filters
-        </Link>{' '}
-        to see all 4,000 customers.
+        </a>
+        {' to see all 4,000 customers.'}
       </p>
     </div>
   )

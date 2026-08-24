@@ -1,0 +1,17 @@
+﻿# chart-table-navigation  Claim 1: the table behind the disclosure is navigable by row and column.  URL: http://localhost:3003/ Keys: {TAB} {TAB} {TAB} {TAB} {TAB} {ENTER} t {DOWN} {DOWN} {DOWN} {DOWN} ^%{RIGHT} ^%{RIGHT} ^%{DOWN} ^%{LEFT} ^%{UP}  --- 
+banner landmark', 'LEDGER', 'same page', 'link
+Sections', 'navigation landmark', 'list', 'with 3 items', 'Overview', 'same page', 'link
+Customers', 'link
+Cohorts', 'link
+main landmark', 'figure', 'View the 24 monthly figures as a table', 'button', 'collapsed
+expanded
+Closing monthly recurring revenue, net movement, active customers, new customers and churned customers, for each month of the report window.', 'table', 'with 25 rows and 6 columns', 'caption', 'Closing monthly recurring revenue, net movement, active customers, new customers and churned 
+customers, for each month of the report window.
+out of caption', 'row 1', 'column 1', 'Month
+column 2', 'Closing MRR
+column 3', 'Net movement
+column 4', 'Customers
+column 5', 'New
+Aug 2024', 'row 2', '57
+Customers', 'column 4', '891
+row 1', 'Customers

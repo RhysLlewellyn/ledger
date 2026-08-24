@@ -1,0 +1,13 @@
+﻿# sort-header-by-table-nav  Claim 4: does aria-sort reach the reader who navigates the header row?  URL: http://localhost:3003/customers?sort=mrr&dir=desc Keys: t {DOWN} {DOWN} {DOWN} {DOWN} ^%{RIGHT} ^%{RIGHT} ^%{RIGHT} ^%{RIGHT} ^%{RIGHT} ^%{RIGHT}  --- 
+main landmark', 'Customers, sorted by MRR descending. Showing 50 of 4,000.', 'table', 'with 51 rows and 9 columns', 'caption', 'Customers, sorted by MRR descending. Showing 50 of 4,000.
+out of caption', 'row 1', 'column 1', 'visited', 'link', 'Customer
+column 2', 'link', 'Plan
+column 3', 'link', 'Status
+column 4', 'link', 'Country
+column 5', 'link', 'Channel
+column 6', 'link', 'Seats
+column 7', 'sorted descending', 'link', 'MRR
+column 8', 'link', 'Signed up
+column 9', 'link', 'Last seen
+Edge of table
+link', 'Last seen

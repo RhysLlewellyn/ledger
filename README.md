@@ -19,12 +19,12 @@ JavaScript holding any state**.
 
 ![The overview: recurring revenue over 24 months, with net movement beneath it](docs/overview.png)
 
-> **Outstanding:** this has not yet been listened to with NVDA. The keyboard and
-> accessibility-tree sweep is clean across seven pages and axe finds nothing, but a
-> screen reader layers its own behaviour on top of the tree — on the previous build in
-> this portfolio that pass found two defects nothing mechanical had seen. Until it is
-> done, treat the accessibility claim here as "mechanically verified" rather than
-> "tested with a screen reader".
+> **Listened to with NVDA on 24 August**, not only checked mechanically. It found five
+> defects that seven clean pages of axe had not, including a table caption the page
+> rendered correctly and the screen reader read as "sorted by Mrrdescending. Showing50
+> of 4,000", and a result count that had been marked `aria-live` for weeks and had
+> never once been announced. All five are fixed and the transcripts are checked in.
+> [What it found, and what changed](#the-screen-reader-pass).
 
 ---
 
@@ -431,9 +431,9 @@ a range nobody reads a value off.
 from the top the way a keyboard user would, and runs axe on each. **Zero axe violations
 across all seven.** It also checks the things this build specifically claims: nine
 tables with captions and scoped headers and no divs pretending to be rows, exactly one
-`aria-sort` per page with the right value, a polite live region carrying the result
-count, both chart SVGs hidden behind a labelled `role="img"`, and the disclosures
-reachable by Tab and toggling on Enter.
+`aria-sort` per page with the right value, the result count reached *before* the
+filter panel that produced it, both chart SVGs hidden behind a labelled `role="img"`,
+and the disclosures reachable by Tab and toggling on Enter.
 
 It found three defects that reading the code had not.
 
@@ -451,9 +451,92 @@ element's own box, so a checkbox inside its own `<label>` reported as 16px on a 
 that is a 24px click target. 2.5.8 is about the area a pointer can hit, which for that
 markup is the label. The sweep measures the label now, and says when it did.
 
-**Not yet done: listening to it with NVDA.** The sweep reads the accessibility *tree*;
-a screen reader layers its own behaviour on top of that, and this is the one claim in
-this README that a machine cannot close.
+---
+
+## The screen-reader pass
+
+`npm run nvda` starts NVDA against a scratch profile with the `silence` synthesiser, so
+it logs every utterance without speaking any of it, drives Chrome through twenty
+scenes with real keystrokes, and writes down what it said. Keys go through `SendKeys`
+rather than the DevTools protocol on purpose: CDP-synthesised keys never reach the
+keyboard hook, browse mode never engages, and a "screen reader test" driven that way is
+a test of something else.
+
+The sweep above and this are not the same thing. The sweep reads the accessibility
+*tree*, which is what a screen reader consumes; NVDA is a separate program that layers
+its own browse mode, its own table navigation and its own rules on top of it. Every one
+of the five defects below sat in a tree that axe was perfectly happy with.
+
+**Nine things were already right**, and it is worth saying which, because "we ran a
+screen reader" is worth nothing without the transcript. The skip link is the first stop
+and moves focus into `<main>`. Each chart figure announces its shape in a sentence —
+*"Line chart of monthly recurring revenue across 24 months, rising steadily from
+£818,365 to £3,439,147…"* — and its two hundred SVG elements are silent behind it. The
+disclosures announce "button, collapsed", then "expanded", then a real table that walks
+by row and column. The sorted column announces *"column 7, sorted descending, link,
+MRR"*. The three tables on a customer page each announce their caption. The export says
+*"Download all 1,085 as CSV"* before you press it. The empty state names the filter that
+is excluding everything. The cohort grid reads as a table.
+
+### The five it found
+
+**A caption the page rendered correctly and the screen reader read wrong.** The customer
+table's caption came out as *"Customers, sorted by Mrrdescending. Showing50 of 4,000."*
+The DOM had the spaces. The screen looked right. But a text node containing nothing but
+whitespace, standing between two elements, survives layout and is dropped when Chrome
+computes the accessibility text — so a `{' '}` separator in JSX produces a sentence that
+reads correctly and sounds broken.
+
+**This is the finding worth keeping**, for two reasons. No automated tool catches it,
+because every automated tool is reading the same DOM, and the DOM is fine. And reading
+the page line by line does not catch it either — a visual line break supplies the space
+that the accessibility text had dropped, so the defect hides wherever the sentence
+happens to wrap. It only appears when a whole region is announced in one go, which is
+what the `read-main-*` scenes do: they activate the skip link, and NVDA reads the newly
+focused landmark end to end, joins and all.
+
+Read that way it was in nine places, not one — the pagination line
+(*"51–100 of4,000· page 2 of 80"*), the result count, both chart captions
+(*"MRR grew from £818,365 to£3,439,147"*, *"expansion added £1,072,852 —33%"*), the
+cohort finding, the customer header, the activity paragraph and the 404. Spaces now live
+inside text nodes that have a word in them, and the pagination separator is a comma —
+`sr-only` is `position: absolute`, and leading whitespace at the start of a box is
+collapsed away before anything else gets a look at it.
+
+**"Mrr".** The caption ran the sort column through a generic humaniser while the header
+above it rendered a hand-written "MRR", so the two disagreed about the name of the same
+column. There is now one list of columns and both read from it.
+
+**"Starter1355".** Each plan filter carried its customer count inside the `<label>`, so
+the count became part of the checkbox's accessible name and the number never said what
+it counted. Sighted readers got the separation from the layout; nobody else did. The
+figure is `aria-hidden` now and a described-by sentence carries it: *"Starter, check
+box, not checked, 1,355 customers"*.
+
+**A live region that had never once fired.** The result count was marked
+`aria-live="polite"` on the theory that applying a filter would announce its result. It
+cannot. Applying a filter submits a GET form, which loads a new document, and a live
+region only announces a change to a region that is already on the page — NVDA reads the
+new page from the top instead. So the attribute was doing nothing, the sweep was
+checking that it was present rather than that it worked, and the claim in this README
+was false.
+
+The attribute has gone rather than been left in place looking helpful. What replaced it
+is position: the count is now the first thing after the heading instead of sitting below
+thirty checkboxes, so the reader meets it about seven lines into the page. The sweep
+checks the ordering now, which is falsifiable in a way that "has the attribute" is not.
+
+**Sorting was completely silent.** Pressing Enter on a column heading re-sorted four
+thousand rows and NVDA said nothing at all — eight seconds of silence in the transcript,
+with a control at the end of the scene proving the sort really had happened. `next/link`
+navigates without tearing the document down, so there is no page-load announcement and
+no live region to fire either. Every link in the build is a plain `<a>` now. There is no
+client state on any of these pages to preserve, so the soft navigation was buying
+nothing and costing that.
+
+Every transcript is in [`docs/nvda/`](docs/nvda), one file per scene, verbatim. They are
+the evidence for everything above, and they are checked in because a claim about a
+screen reader that cannot be read back is not a claim, it is a reassurance.
 
 ---
 
@@ -468,7 +551,10 @@ disagree about what "the current view" is.
 
 The filter panel is a plain `<form method="get">` whose fields are named exactly what
 the parser reads, so the URL is identical whether it came from the form, from a pasted
-link, or from the back button. There is no client state to fall out of step with the
+link, or from the back button. Every sort, page and link is a plain `<a>` for the same
+reason — and, after the screen-reader pass, for a second one: a client-side navigation
+replaces the page without announcing anything at all, so somebody listening pressed a
+column heading and heard silence. There is no client state to fall out of step with the
 address bar, and the whole thing works with JavaScript switched off.
 
 Three rules hold in the parser, each with a test:
@@ -573,6 +659,7 @@ npm test                      # 86 tests; most of them need the database
 npm run measure -- before     # query timings and plans -> docs/measurements/
 npm run contrast              # every contrast ratio, exits non-zero on a failure
 npm run a11y                  # keyboard and accessibility-tree sweep, plus axe
+npm run nvda                  # what NVDA actually says -> docs/nvda/*.txt
 npm run shots                 # regenerates docs/*.png
 ```
 

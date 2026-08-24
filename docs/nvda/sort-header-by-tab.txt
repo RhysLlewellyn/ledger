@@ -1,0 +1,13 @@
+﻿# sort-header-by-tab  Claim 4 by the other route: tabbing onto the sorted column's link.  URL: http://localhost:3003/customers?sort=mrr&dir=desc Keys: t {DOWN} {DOWN} {DOWN} {DOWN} {TAB} {TAB} {TAB} {TAB} {TAB} {TAB} {TAB}  --- 
+main landmark', 'Customers, sorted by MRR descending. Showing 50 of 4,000.', 'table', 'with 51 rows and 9 columns', 'caption', 'Customers, sorted by MRR descending. Showing 50 of 4,000.
+out of caption', 'row 1', 'column 1', 'visited', 'link', 'Customer
+column 2', 'link', 'Plan
+column 3', 'link', 'Status
+column 4', 'link', 'Country
+column 5', 'Channel', 'link
+column 6', 'Seats', 'link
+column 7', 'sorted descending', 'MRR', 'link
+column 8', 'Signed up', 'link
+column 9', 'Last seen', 'link
+row 2', 'Customer', 'column 1', 'Juniper Laboratories Pty', 'link
+row 3', 'Ashcombe Surveying BV', 'link

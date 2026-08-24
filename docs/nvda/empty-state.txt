@@ -1,0 +1,14 @@
+﻿# empty-state  The no-rows state has to name the filters, not just say no.  URL: http://localhost:3003/customers?mrrMin=9999999 Keys: ^{END} {UP} {UP} {UP} {UP} {UP} {UP} {UP} {UP} {UP} {UP} {UP} {UP}  --- 
+clickable
+content info landmark', 'product and not client work.
+billing history are generated data, and none of them exist. It is a demonstration build, not a real 
+Ledger is an invented subscription business. The four thousand companies, their plans and their 
+main landmark', 'link', 'Clear all filters', ' to see all 4,000 customers.
+list', 'with 1 item', '• MRR is at least £9,999,999
+out of list', 'Currently filtering where:
+heading', 'level 2', 'No customers match these filters
+form', 'button', 'Apply filters
+grouping', 'spin button', 'editable', 'max
+Maximum monthly revenue in pounds
+spin button', 'editable', '9999999
+Minimum monthly revenue in pounds

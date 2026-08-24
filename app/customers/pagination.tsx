@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 import {count} from '@/format.ts'
 import type {CustomerQueryOptions} from '@/metrics/customers.ts'
 import {customerHref} from '@/metrics/params.ts'
@@ -37,34 +35,51 @@ export function Pagination({
       className="mt-6 flex items-baseline justify-between gap-4 border-t border-(--color-rule) pt-4 text-sm"
     >
       {options.page > 1 ? (
-        <Link
+        <a
           href={`/customers${customerHref(options, {page: options.page - 1})}`}
           rel="prev"
           className="inline-block py-1 underline underline-offset-4"
         >
           ← Previous
-        </Link>
+        </a>
       ) : (
         <span className="text-(--color-muted)">← Previous</span>
       )}
 
+      {/*
+        The spaces live inside text nodes that have something else in them.
+
+        Written with {' '} separators, this line rendered as "51–100 of 4,000"
+        and NVDA read it as "51–100 of4,000· page 2 of 80". A text node holding
+        nothing but whitespace survives layout and is dropped when Chrome
+        computes the accessibility text, so the page looked right and sounded
+        wrong. `{' of '}` is not a whitespace-only node -- it has a word in it
+        -- and nothing is entitled to throw its spaces away.
+      */}
       <p className="text-center text-(--color-ink-2)">
-        <span data-numeric>{count(first)}</span>–<span data-numeric>{count(last)}</span> of{' '}
+        <span data-numeric>{count(first)}</span>–<span data-numeric>{count(last)}</span>
+        {' of '}
         <span data-numeric>{count(total)}</span>
-        <span className="sr-only">
-          {' '}
-          · page {options.page} of {lastPage}
-        </span>
+        {/*
+          A comma, not the leading space and middle dot this used to carry.
+          `sr-only` is `position: absolute`, which makes the span its own box,
+          and leading whitespace at the start of a box is collapsed away before
+          anything else gets a look at it -- so it read as "4,000· page 2 of
+          80". A comma needs no space in front of it and is what somebody
+          listening would expect to hear between the two facts anyway. The
+          middle dot was a visual separator inside text that is never seen.
+        */}
+        <span className="sr-only">{`, page ${options.page} of ${lastPage}`}</span>
       </p>
 
       {options.page < lastPage ? (
-        <Link
+        <a
           href={`/customers${customerHref(options, {page: options.page + 1})}`}
           rel="next"
           className="inline-block py-1 underline underline-offset-4"
         >
           Next →
-        </Link>
+        </a>
       ) : (
         <span className="text-(--color-muted)">Next →</span>
       )}

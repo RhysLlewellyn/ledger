@@ -1,5 +1,4 @@
 import type {Metadata} from 'next'
-import Link from 'next/link'
 import {notFound} from 'next/navigation'
 
 import {getSql} from '@/db/index.ts'
@@ -59,23 +58,24 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
   return (
     <>
       <p className="text-sm">
-        <Link
+        <a
           href="/customers"
           className="inline-block py-1 underline underline-offset-4"
         >
           ← All customers
-        </Link>
+        </a>
       </p>
 
       <header className="mt-4 border-b border-(--color-ink) pb-4">
         <h1 className="text-2xl">{customer.name}</h1>
         <p className="mt-2 text-sm text-(--color-ink-2)">
-          {countryName(customer.country)} · {humanise(customer.acquisition_channel)} · signed up{' '}
+          {`${countryName(customer.country)} · ${humanise(customer.acquisition_channel)}` +
+            ' · signed up '}
           <span data-numeric>{day(customer.signed_up_at)}</span>
           {churned && (
             <>
-              {' '}
-              · churned <span data-numeric>{day(customer.churned_at!)}</span>
+              {' · churned '}
+              <span data-numeric>{day(customer.churned_at!)}</span>
             </>
           )}
         </p>
@@ -195,10 +195,12 @@ export default async function CustomerPage({params}: {params: Promise<{slug: str
       <section className="mt-10">
         <h2 className="text-lg">Recent activity</h2>
         <p className="mt-1 max-w-prose text-sm text-(--color-ink-2)">
-          The most recent {FEED_LIMIT} of{' '}
-          <span data-numeric>{count(customer.event_count)}</span> events. This is the query the
-          index on <code>event (customer_id, occurred_at desc)</code> exists for: without it,
-          finding these fifty rows is a sequential scan of a quarter of a million.
+          {`The most recent ${FEED_LIMIT} of `}
+          <span data-numeric>{count(customer.event_count)}</span>
+          {' events. This is the query the index on '}
+          <code>event (customer_id, occurred_at desc)</code>
+          {' exists for: without it, finding these fifty rows is a sequential scan of a ' +
+            'quarter of a million.'}
         </p>
         {events.length === 0 ? (
           <p className="mt-3 text-sm text-(--color-muted)">

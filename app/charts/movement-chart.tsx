@@ -88,11 +88,12 @@ export function MovementChart({months}: {months: readonly MrrMonth[]}) {
       }
       caption={
         <>
-          Across the window, expansion added <strong>{money(expansion.total)}</strong> —{' '}
-          {((expansion.total / gross) * 100).toFixed(0)}% of all revenue gained, and the
-          second-largest source after new business. Churn took{' '}
-          <strong>{money(Math.abs(churn.total))}</strong> back. Both stacks grow as the
-          business does; what matters is that the one above the line grows faster.
+          Across the window, expansion added <strong>{money(expansion.total)}</strong>
+          {` — ${((expansion.total / gross) * 100).toFixed(0)}% of all revenue gained, and ` +
+            `the second-largest source after new business. Churn took `}
+          <strong>{money(Math.abs(churn.total))}</strong>
+          {' back. Both stacks grow as the business does; what matters is that the one ' +
+            'above the line grows faster.'}
         </>
       }
       tableSummary={`View the ${months.length} months of movement as a table`}

@@ -1,0 +1,5 @@
+﻿# customer-detail-tables  Claim 5: the three tables on the detail page announce their captions.  URL: http://localhost:3003/customers/beacon-studio-plc Keys: t t t t  --- 
+main landmark', 'Every subscription this customer has held, most recent first.', 'table', 'with 2 rows and 6 columns', 'caption', 'Every subscription this customer has held, most recent first.
+Revenue movements, most recent first, with the running balance after each.', 'table', 'with 5 rows and 4 columns', 'caption', 'Revenue movements, most recent first, with the running balance after each.
+The 50 most recent events for this customer.', 'table', 'with 51 rows and 3 columns', 'caption', 'The 50 most recent events for this customer.
+no next table

@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 import {getSql} from '@/db/index.ts'
 import {count, countDelta, day, money, movement, percent} from '@/format.ts'
 import {reportBounds} from '@/metrics/facets.ts'
@@ -105,20 +103,20 @@ export default async function Overview() {
       <nav className="mt-12 border-t border-(--color-rule-2) pt-4 text-sm">
         <ul className="flex flex-wrap gap-6">
           <li>
-            <Link
+            <a
               href="/cohorts"
               className="inline-block py-1 underline underline-offset-4"
             >
               Retention by signup month →
-            </Link>
+            </a>
           </li>
           <li>
-            <Link
+            <a
               href="/customers"
               className="inline-block py-1 underline underline-offset-4"
             >
               All {count(4000)} customers →
-            </Link>
+            </a>
           </li>
         </ul>
       </nav>
