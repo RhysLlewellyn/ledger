@@ -17,15 +17,22 @@
  * grey blocks. A printed report before the figures are set is not a grey
  * rectangle, it is a ruled page, and this build already owns that vocabulary.
  *
- * `rows` is not decoration either. It is how many ruled lines to lay down, set
- * per route to approximate the height of the page that will replace it, so
- * little moves when it does. It was 16 on all four routes for a while, under a
- * comment claiming it matched the real row count — which is the kind of claim
- * this build argues about in other people's markup, so: the customers table
- * renders its default fifty, the cohort grid a row per month of the window,
- * the statement its dozen or so lines, and the overview is not a table at all,
- * so its number is a height rather than a count and says so here rather than
- * pretending otherwise.
+ * `rows` is not decoration either. It is how many ruled lines to lay down, and
+ * the number is a *height* rather than a count of anything: `rows * 36px` is
+ * what the fallback reserves, so it should be the height of the page that
+ * replaces it, or the footer moves when it does.
+ *
+ * It was 16 on all four routes for a while, under a comment claiming it matched
+ * the row count the page would render. It did not, and neither did the honest
+ * per-route counts that replaced it — a page is not as tall as its rows. These
+ * were measured instead, at Lighthouse's mobile viewport against the deployed
+ * build: main's height less its header, divided by 36. The overview wants 49,
+ * the customers table 82, the cohort grid 45, a statement 49.
+ *
+ * They are a viewport's worth too tall on a wide screen, where less prose
+ * wraps, and that is the trade: the audience for this is a phone, the number
+ * that gets quoted is measured on one, and a fallback that reserves too little
+ * on the device people actually use is the worse of the two errors.
  */
 export function Skeleton({
   title,

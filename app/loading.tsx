@@ -5,7 +5,7 @@ export default function Loading() {
     <Skeleton
       title="Overview"
       lead="Ledger is an invented subscription business; every figure below is computed from its billing history by the database, not stored anywhere as a total."
-      rows={14}
+      rows={49}
     />
   )
 }
