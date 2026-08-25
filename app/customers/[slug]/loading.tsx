@@ -7,7 +7,7 @@ export default function Loading() {
     <Skeleton
       title="Customer"
       lead="Subscriptions, revenue movements and recent activity for one account."
-      rows={16}
+      rows={24}
     />
   )
 }

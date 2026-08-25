@@ -1,5 +1,5 @@
 import {getSql} from '@/db/index.ts'
-import {count, countDelta, day, money, movement, percent} from '@/format.ts'
+import {count, countDelta, day, money, movement, percent, percentDelta} from '@/format.ts'
 import {reportBounds} from '@/metrics/facets.ts'
 import {mrrMonthly, type MrrMonth} from '@/metrics/mrr-series.ts'
 import type {Query} from '@/metrics/sql.ts'
@@ -88,7 +88,13 @@ export default async function Overview() {
         <Figure
           label="Monthly recurring revenue"
           value={money(mrr)}
-          note={`${movement(mrr - priorMrr)} on the month`}
+          // The rate, not the amount. This note used to read "+£83,063 on the
+          // month" and the Net movement figure two cells along reads +£83,063,
+          // because they are the same quantity by construction — a quarter of
+          // the headline row was restating another cell's subtitle. The rate
+          // is the thing the row could not otherwise tell you, and it is what
+          // the chart caption below goes on to talk about.
+          note={`${percentDelta(priorMrr === 0 ? 0 : (mrr - priorMrr) / priorMrr, 1)} on the month`}
         />
         <Figure
           label="Active customers"

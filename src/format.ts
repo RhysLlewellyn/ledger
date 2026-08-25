@@ -85,6 +85,20 @@ export function percent(fraction: number, digits = 0): string {
   return `${(fraction * 100).toFixed(digits)}%`
 }
 
+/**
+ * A signed rate of change, as opposed to a rate.
+ *
+ * The third of the three the comment above `countDelta` is about: money,
+ * counts and rates all render as digits and none of them can be run through
+ * another's formatter. A growth rate needs its sign for the same reason a
+ * movement does — "2.5%" and "+2.5%" are different claims, and the one the
+ * reader needs is the one that says which way.
+ */
+export function percentDelta(fraction: number, digits = 0): string {
+  const n = fraction * 100
+  return `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n).toFixed(digits)}%`
+}
+
 export function day(value: Date | string): string {
   return DAY.format(asDate(value))
 }

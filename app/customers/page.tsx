@@ -148,7 +148,7 @@ export default async function Customers({
 
   return (
     <>
-      <header className="border-b border-(--color-rule-2) pb-4">
+      <header className="border-b border-(--color-ink) pb-4">
         <h1 className="text-2xl">Customers</h1>
         <p className="mt-2 max-w-prose text-sm text-(--color-ink-2)">
           Every filter, sort and page is in the address bar, and every one of them is applied

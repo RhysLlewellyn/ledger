@@ -17,9 +17,15 @@
  * grey blocks. A printed report before the figures are set is not a grey
  * rectangle, it is a ruled page, and this build already owns that vocabulary.
  *
- * `rows` is not decoration either. It is set to the number of rows the page
- * will actually render, so the fallback is the height of the thing replacing
- * it and nothing moves when it does.
+ * `rows` is not decoration either. It is how many ruled lines to lay down, set
+ * per route to approximate the height of the page that will replace it, so
+ * little moves when it does. It was 16 on all four routes for a while, under a
+ * comment claiming it matched the real row count — which is the kind of claim
+ * this build argues about in other people's markup, so: the customers table
+ * renders its default fifty, the cohort grid a row per month of the window,
+ * the statement its dozen or so lines, and the overview is not a table at all,
+ * so its number is a height rather than a count and says so here rather than
+ * pretending otherwise.
  */
 export function Skeleton({
   title,
