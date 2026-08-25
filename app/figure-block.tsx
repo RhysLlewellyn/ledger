@@ -19,8 +19,14 @@ export function Figure({
 }: {
   label: string
   value: string
-  /** A qualifier under the figure: "+£83,063 on the month", "in July 2026". */
-  note?: string
+  /**
+   * A qualifier under the figure: "+£83,063 on the month", "in July 2026".
+   *
+   * A node rather than a string, because some of these qualifiers name a set
+   * of customers the table can actually show — "57 accounts lost" is a link on
+   * a build whose first claim is that every view has an address.
+   */
+  note?: React.ReactNode
   /** `lg` for a page's headline row, `md` for a subordinate one. */
   size?: 'lg' | 'md'
 }) {

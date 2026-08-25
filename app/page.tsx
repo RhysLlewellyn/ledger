@@ -103,7 +103,17 @@ export default async function Overview() {
         <Figure
           label="Revenue churn"
           value={percent(churnRate, 1)}
-          note={`${count(last.churn_count)} accounts lost`}
+          note={
+            // The figure names a set of customers, and the table can show that
+            // set. Sorted by when they were last seen, because the useful
+            // question about a cancelled account is when it went.
+            <a
+              href="/customers?status=cancelled&sort=last_seen&dir=desc"
+              className="underline decoration-(--color-rule-2) underline-offset-4 hover:decoration-(--color-ink)"
+            >
+              {`${count(last.churn_count)} accounts lost`}
+            </a>
+          }
         />
       </dl>
 

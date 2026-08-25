@@ -4,6 +4,20 @@ import {count, month as monthLabel, percent} from '@/format.ts'
 import type {CohortCell} from '@/metrics/cohorts.ts'
 
 /**
+ * The customers table, filtered to one cohort's signup month.
+ *
+ * A cohort is `YYYY-MM`; the filter takes two days. The last of the month is
+ * derived by asking for day zero of the next one, which is how JavaScript
+ * spells "the day before the first" without a table of month lengths, and it
+ * is done in UTC because these are calendar days rather than instants.
+ */
+function cohortHref(cohort: string): string {
+  const [year, month] = cohort.split('-').map(Number)
+  const last = new Date(Date.UTC(year!, month!, 0)).toISOString().slice(0, 10)
+  return `/customers?from=${cohort}-01&to=${last}&sort=signed_up&dir=asc`
+}
+
+/**
  * Retention by signup month.
  *
  * This chart is a table, and that is the design rather than a compromise.
@@ -166,7 +180,23 @@ export function CohortGrid({
                   scope="row"
                   className="sticky left-0 z-10 bg-(--color-paper) py-1 pr-3 text-left font-normal whitespace-nowrap"
                 >
-                  <span data-numeric>{monthLabel(cohort)}</span>
+                  {/*
+                    The cohort is a link to the customers who are in it.
+
+                    This grid can say that the July 2025 cohort was still 80%
+                    paying a year later and then leave you with no way to see
+                    who those people are, on a build whose first claim is that
+                    the URL is the state. A cohort is a signup month, the table
+                    filters on signup date, so the view already exists and this
+                    is the address of it.
+                  */}
+                  <a
+                    href={cohortHref(cohort)}
+                    data-numeric
+                    className="underline decoration-(--color-rule-2) underline-offset-4 hover:decoration-(--color-ink)"
+                  >
+                    {monthLabel(cohort)}
+                  </a>
                 </th>
                 <td data-numeric className="py-1 pr-3 text-right text-(--color-muted)">
                   {count(size)}
