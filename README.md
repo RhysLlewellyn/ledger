@@ -54,8 +54,12 @@ company against a meta description on one of four thousand near-identical pages 
 data. The title wins. The same trade on `/customers` went the other way, and the reasoning
 for both is in [the screen-reader pass](#the-screen-reader-pass).
 
-**CLS is 0 on all four, across all twenty runs** — and it is worth saying how that number
-was earned, because for most of this build's life it was luck.
+**CLS is 0 on all four, across all twenty runs** — and, since this build's whole argument
+is that a claim should be checkable from the repo, `npm run cls` reproduces it. That script
+did not exist when this number was first written down, which was the problem: the figure
+came out of Lighthouse and nothing here could reproduce it, so a reader had to take it on
+trust. It is worth saying how the zero was earned, because for most of this build's life it
+was luck.
 
 It is zero for one good reason and it was zero for one bad one. The good reason is the
 type: three self-hosted webfonts are the likeliest thing to move a layout, and `next/font`
@@ -70,6 +74,19 @@ the right way. When a later change perturbed it, `/` shifted on two runs of five
 `rows` was never a count of anything. `rows * 36px` is a height, and it is measured now —
 49, 82, 45 and 49, taken at Lighthouse's mobile viewport against the deployed build. Twenty
 runs since, four routes, zero on every one.
+
+`tools/cls.mjs` is what keeps it that way, and it does not measure the happy path. It
+throttles the network hard enough that the streamed fallback is guaranteed to paint, which
+turns the race that was hiding the shift into a deterministic result, and it names the
+element that moved rather than only scoring it. Checked the way everything else here is
+checked — by putting the defect back: with the overview's fallback returned to 14 rows it
+reports **0.5677**, names the footer moving 766px, and exits 1.
+
+It caught that on the desktop pass and not the mobile one, which is worth knowing rather
+than hiding. CLS scores the movement of what is *visible*; the phone viewport is taller
+relative to the page, and a footer below the fold before the swap and below it after has
+not visibly moved. So the desktop pass is the sensitive one for anything near the bottom of
+a long page, and a mobile-only check would be weaker than it looks.
 
 TTFB is 13–15 ms and TBT is 15–57 ms. LCP is 1.7–2.2 s, and essentially all of that is
 render delay under Lighthouse's simulated mobile throttling rather than the server:
@@ -430,17 +447,37 @@ several seconds of a page that looks broken.
 
 ### The one client component
 
-`app/error.tsx` is the only `'use client'` file in the build, and it is one because React
-error boundaries are client components by construction — there is no server equivalent. It
-holds no state and reads nothing from the browser; its entire client-side behaviour is a
-reset button, and it costs **1,058 bytes**. Next renders it on the server for an error
-thrown during SSR, so with JavaScript off the message and the link still work and only the
-button is inert, which is why there is a link as well as a button. It shows the error's
-`digest` — the server-side hash that is the only thing connecting what the reader saw to
-what the logs recorded.
+`app/error.tsx` is one of two `'use client'` files, and it is one because Next requires it
+of `error.tsx` — not because the file needs a browser. It holds no state, reads nothing from
+`window`, and since the retry became a link it has no handler either. It shows the error's
+`digest`, the server-side hash that is the only thing connecting what the reader saw to what
+the logs recorded.
 
-This is the backstop, not the mechanism: the four routes catch their own database failures
-themselves, and this is for the rest.
+**This section used to say Next renders the boundary on the server, so that with JavaScript
+off the message and the link would still work and only the button would be inert.** That was
+wrong, and wrong in the direction that flattered the build. Measured against a route made to
+throw during SSR:
+
+- The response is **200** and contains none of the boundary's text. The error crosses as an
+  RSC error payload — `E{"digest":"…"}` in the flight stream — for the client to act on.
+- With scripting **on**, React unwraps it and renders the boundary. As intended.
+- With scripting **off**, nothing unwraps it. The reader is left on the streamed
+  `loading.tsx` fallback: ruled paper, `aria-busy="true"`, and a `role="status"` announcing
+  *"Loading the figures."* — for figures that are never coming.
+
+That last case is a real defect and it is named here rather than left implied. What actually
+protects a reader without JavaScript is each route catching its own failure and
+server-rendering `Unavailable`, which does work with scripting off — that is why it exists
+and why all four routes use it. This file is the layer below it, and the honest description
+is a backstop for readers who have JavaScript, not a fallback for readers who do not.
+
+The retry is now a link with `href=""`, which resolves to the current URL, query string and
+all. `reset()` re-renders the same tree that just threw on the same server payload, so it
+tends to throw again; a link re-requests the page and gets a fresh server render, which is
+what recovers a transient failure. `Unavailable` had already made that argument for the case
+it handles, and there was no reason for one build to hold two opinions about what a retry is.
+The second link is not a retry: when the fault is in the build rather than the request,
+retrying cannot help and a way out is the only control that still does anything.
 
 One thing it does not do is set a status code. An outage page returns 200, because a Next
 page component cannot set the response status. It is named here rather than papered over.
@@ -1150,6 +1187,7 @@ npm test                      # 101 tests; most of them need the database
 npm run measure -- before     # query timings and plans -> docs/measurements/
 npm run contrast              # every contrast ratio, exits non-zero on a failure
 npm run a11y                  # keyboard and accessibility-tree sweep, plus axe
+npm run cls                   # layout shift, throttled so the fallback paints; exits non-zero
 npm run nvda                  # what NVDA actually says -> docs/nvda/*.txt
 npm run shots                 # regenerates docs/*.png
 ```
@@ -1159,7 +1197,7 @@ running, naming what went unproven — and `CI=1` turns the skip off entirely, b
 a build server an unreachable database is a broken pipeline rather than a local
 convenience.
 
-`a11y` and `shots` need Chrome installed and the server running; take the screenshots
+`a11y`, `cls` and `shots` need Chrome installed and the server running; take the screenshots
 against `npm run build && npm start` rather than the dev server, or the framework's
 dev-tools badge sits in the corner of every one of them.
 
