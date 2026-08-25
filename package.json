@@ -20,6 +20,7 @@
     "contrast": "node tools/contrast.ts",
     "shots": "node tools/screenshots.mjs",
     "a11y": "node tools/a11y-sweep.mjs",
+    "cls": "node tools/cls.mjs",
     "nvda": "powershell -NoProfile -File tools/nvda-pass.ps1"
   },
   "dependencies": {
