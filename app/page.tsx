@@ -115,7 +115,7 @@ export default async function Overview() {
             // question about a cancelled account is when it went.
             <a
               href="/customers?status=cancelled&sort=last_seen&dir=desc"
-              className="underline decoration-(--color-rule-2) underline-offset-4 hover:decoration-(--color-ink)"
+              className="underline underline-offset-4"
             >
               {`${count(last.churn_count)} accounts lost`}
             </a>

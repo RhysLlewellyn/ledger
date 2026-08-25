@@ -193,7 +193,7 @@ export function CohortGrid({
                   <a
                     href={cohortHref(cohort)}
                     data-numeric
-                    className="underline decoration-(--color-rule-2) underline-offset-4 hover:decoration-(--color-ink)"
+                    className="underline underline-offset-4"
                   >
                     {monthLabel(cohort)}
                   </a>

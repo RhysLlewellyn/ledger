@@ -956,6 +956,128 @@ genuinely is a smaller claim than the whole business's.
 
 ---
 
+## The second critique
+
+The first design critique scored the build 28/40 and its findings are the six passes above.
+Re-run against the shipped result it scored 31/40, with the P0 closed. What it found the
+second time was one shape rather than six separate faults: **the build was composed for a
+desktop reader who had already decided to stay, and its audience is a phone reader who has
+not.**
+
+Everything below was measured on the deployed site before it was changed, and measured again
+after. The numbers are the point; without them this section would be a list of opinions.
+
+### The panel stood between the reader and the answer
+
+At 390px the filter form was **1,247px tall and the first customer row sat at 1,622px** —
+1.92 screens below the heading, on the page this build most wants read, on the device it is
+most likely to be opened on. The document's own skip link does not help: it targets `#main`,
+which is *above* the panel.
+
+Three changes, no JavaScript. The fieldsets pack into two columns from the smallest width
+rather than from `sm`. There is a link past the panel at the width where the panel is a
+problem, and it is `sm:hidden` because above that the panel is a few hundred pixels and a tab
+stop past something nobody scrolls past is just a tab stop. And the form submits to
+`#results`, so Apply lands on the rows instead of at the top of the document — it had been
+answering the question it was asked by scrolling away from the answer.
+
+The panel is 799px now and the first row is at 1,174px.
+
+### The page could contradict itself
+
+The result count is computed from the query string. The checkboxes show whatever has been
+ticked since. So ticking three boxes without submitting put
+
+> 4,000 customers match — no filters applied.
+
+on screen directly above three visibly ticked boxes, with nothing to say which of the two was
+true, on the one interaction the page exists for. Nothing said Apply was required either.
+
+The applied filters are now written out as their own list between the count and the panel,
+built from `options` — the parsed URL, the same object the count was computed from — so the
+two cannot disagree by construction. Each is a link that drops that one clause and keeps the
+rest, which answers *what is on* and *take one off* with one component and no client state.
+
+They are hairline boxes rather than pills: a rounded chip with a tinted fill would be the
+first rounded corner in the build, and a rule around a label is what a paper form does. The
+accessible name is overridden to `Remove filter, Plan Enterprise`, because left to its visible
+text the link announces as "Plan Enterprise", which reads as a link *to* the Enterprise plan.
+It still contains the visible text word for word, which is what 2.5.3 asks of a label that
+replaces one.
+
+### The headline figures did not fit their column
+
+At two columns on a phone the row misread three ways at once. `MONTHLY RECURRING REVENUE`
+wraps to two lines where `ACTIVE CUSTOMERS` does not, so the four values sat on **three
+different baselines at 390, 360 and 320, and on one at 1280** — the row read as untidy before
+either number could be read. And `£3,439,147` needs 141.6px against a column giving it 140px
+at 360 and 120px at 320, so the largest number on the site spent two thirds of the gutter that
+was supposed to separate it from the next.
+
+One figure per row below `sm` now, two from `sm`, four from `lg`. Measured again at every
+width: 130–200px of room to spare at 320, 360 and 390, and at 200% text zoom the worst case
+falls from 183px of overflow to 19px. Stacking rather than a smaller type size, because the
+figure is the reason the row exists and shrinking it to fit is answering the wrong question.
+
+The critique that raised this filed it as a blocking accessibility failure, on the grounds
+that `html { overflow-x: clip }` left the spill unrecoverable. That was tested directly and
+it does not hold: at 320 the figure stayed 10px clear of the next column, and at 200% zoom the
+layout viewport widens to 596px and the row fits. Crowding, not content loss. It is worth
+saying plainly, because the same discipline that catches a real defect has to be willing to
+downgrade one.
+
+### Three reports sharing a masthead
+
+The cohort grid could tell you the July 2025 cohort was still 80% paying a year later and then
+leave you with no way to see who those people are. The overview could say *57 accounts lost*
+and not show you one of them. On a build whose first sentence is that every view has an
+address, and which already owns the function that writes those addresses, that is three
+reports that share a masthead rather than one analysis you can move through.
+
+Every cohort is a link to the customers who signed up that month. The churn figure links to
+the cancelled accounts, sorted by when each was last seen, because the useful question about a
+cancelled account is when it went. Month ends come from asking for day zero of the next month
+in UTC, which is how to spell *the day before the first* without a table of month lengths —
+checked at the ends that matter, including 2024-02-29.
+
+### Three things that claimed more than they did
+
+**Two of the four headline figures printed the same number.** "Monthly recurring revenue
++£83,063 on the month" and "Net movement +£83,063" are equal by construction, so a quarter of
+the headline row was restating another cell's subtitle. The revenue note carries the rate now
+— *+2.5% on the month* — which is the thing the row could not otherwise say, and the thing the
+chart caption below goes on to talk about. That needed a signed-rate formatter, which is the
+third of the three the note above `countDelta` is about: money, counts and rates all render as
+digits and none of them survives another's formatter.
+
+**`Skeleton`'s doc comment said `rows` was "set to the number of rows the page will actually
+render".** All four routes passed 16. They pass their own counts now, and the comment says
+plainly that the overview's number is a height rather than a count, because the overview is
+not a table. An untrue comment is the same defect as an `aria-live` that cannot fire, and this
+build argues that about other people's markup.
+
+**`/customers` closed its masthead with `--color-rule-2`** where the other three pages use
+`--color-ink` — the odd one out being the page the build most wants looked at.
+
+### What the second pass confirmed rather than found
+
+Worth recording, because it is the more useful half of the result. The bundled design detector
+returns nothing across all 50 scannable files — and that was verified to be a real clean sheet
+rather than a silent no-op by dropping a control file carrying a purple gradient, `rounded-3xl`,
+`shadow-2xl` and an emoji into the same tree and watching it fail. The axe sweep is still zero
+violations across seven pages at 1280 **and** 360, after all of the above. The in-page detector
+reported gradient text on `body` on every route; the served CSS contains zero occurrences of
+`background-clip` and zero of `linear-gradient`, and the only mention of a gradient anywhere in
+the source is the comment that says there are none. It was a false positive from the scanner's
+own injected source.
+
+One claim was tested and refuted outright. The critique argued that `force-dynamic` against a
+suspending Neon free tier made the cold link's first paint an apology. After 6.7 minutes with
+no traffic, two cold requests to production returned **TTFB 0.110s and 0.131s**, HTTP 200, real
+figures, no fallback. The evidence behind the claim had come from a local server that was
+serving the outage page because `.env` points at a local Postgres that was not running.
+---
+
 ## What is deliberately missing
 
 **No authentication.** Every page is public. A real billing dashboard is the most
