@@ -4,8 +4,9 @@ A subscription billing analytics dashboard for an invented SaaS. Four thousand
 customers, two complete years of billing history, a quarter of a million product
 events — and the point of it is that a data-dense interface stays fast and stays
 usable at that volume. Every dashboard query is under 100 ms at p95 against the
-deployed database, Lighthouse is 99+ on the three main pages with CLS at 0, and axe finds
-nothing across seven pages at 1280 and at 360.
+deployed database, Lighthouse performance is 97 or better on every page at its worst of
+five runs with CLS at 0 on all of them, and axe finds nothing across seven pages at 1280
+and at 360.
 
 **Live:** https://ledger-beta-wheat.vercel.app
 
@@ -31,17 +32,21 @@ JavaScript holding any state**.
 ## Lighthouse
 
 Lighthouse 13.4.1 with its default mobile emulation, run against the deployed URL rather
-than a local build. Median of five runs per page, re-measured after the screen-reader
-pass changed the markup.
+than a local build. Five runs per page, re-measured after the second critique changed the
+markup again. The Performance column is the **lowest** of the five, not the median and not
+the best — the spread is printed underneath so you can see what it was.
 
 | | Performance | Accessibility | Best practices | SEO | Agentic Browsing |
 |---|---|---|---|---|---|
-| `/` — the overview | **99** | **100** | **100** | **100** | **100** |
-| `/customers` — 4,000 rows, filtered | **99** | **100** | **100** | **100** | **100** |
-| `/cohorts` — the retention grid | **99** | **100** | **100** | **100** | **100** |
+| `/` — the overview | **98** | **100** | **100** | **100** | **100** |
+| `/customers` — 4,000 rows, filtered | **97** | **100** | **100** | **100** | **100** |
+| `/cohorts` — the retention grid | **98** | **100** | **100** | **100** | **100** |
 | `/customers/[slug]` — one account | **99** | **100** | **100** | 90 | **100** |
 
-**The 90 is the one number here that is not 98+, and it is worth saying why rather than
+The five runs behind those, in order: the overview 98, 99, 99, 99, 99; the customers table
+99, 99, 97, 100, 100; the cohort grid 98, 99, 99, 99, 99; a statement 99, 99, 100, 99, 99.
+
+**The 90 is the only number here below 97, and it is worth saying why rather than
 leaving it off the table.** A customer page has to look its customer up before it can title
 itself, so its `generateMetadata` is async, so Next streams the whole route's metadata and
 the meta description lands after `<body>` opens. The trade is a page title that names the
@@ -49,20 +54,34 @@ company against a meta description on one of four thousand near-identical pages 
 data. The title wins. The same trade on `/customers` went the other way, and the reasoning
 for both is in [the screen-reader pass](#the-screen-reader-pass).
 
-**CLS is 0 on all three**, which is the number a layout change is most likely to cost
-you and the one I check first. It is also the number three self-hosted webfonts are most
-likely to cost you, and it is zero because `next/font` generates a metric-matched
-fallback — the type does not move when the real face arrives.
+**CLS is 0 on all four, across all twenty runs** — and it is worth saying how that number
+was earned, because for most of this build's life it was luck.
 
-TTFB is 13–15 ms and TBT is 16–32 ms. LCP is 2.0–2.2 s, and essentially all of that is
+It is zero for one good reason and it was zero for one bad one. The good reason is the
+type: three self-hosted webfonts are the likeliest thing to move a layout, and `next/font`
+generates a metric-matched fallback so nothing shifts when the real face arrives. The bad
+one is that these pages stream, and the fallback they stream first was never the height of
+the page that replaced it — the overview reserved 504px against 1,746px of content, the
+cohort grid 1,080 against 1,611. Whether that cost anything depended on whether the
+fallback painted before the query came back, which is a race, and the race had been going
+the right way. When a later change perturbed it, `/` shifted on two runs of five and
+`/cohorts` on one, and the element Lighthouse caught moving was the footer.
+
+`rows` was never a count of anything. `rows * 36px` is a height, and it is measured now —
+49, 82, 45 and 49, taken at Lighthouse's mobile viewport against the deployed build. Twenty
+runs since, four routes, zero on every one.
+
+TTFB is 13–15 ms and TBT is 15–57 ms. LCP is 1.7–2.2 s, and essentially all of that is
 render delay under Lighthouse's simulated mobile throttling rather than the server:
 every one of these pages is rendered per request against Postgres in London, and the
 document arrives in about fifteen milliseconds.
 
-Five runs rather than three because performance is the category that will not sit still.
-The overview scored 97, 99, 99, 99, 99 across those five. Quoting the 100 would have
-been the easier thing to do and it would have been a screenshot rather than a
-measurement.
+Five runs rather than three because performance is the category that will not sit still,
+and the lowest of the five rather than the median because quoting the good one would be a
+screenshot rather than a measurement. `/cohorts` is the page that moved most in this last
+pass: it was a steady 99 and is 98 at its worst, which is what forty-two new links cost —
+every cohort is now a link to the customers who signed up that month, and that is worth a
+point.
 
 `/customers` was 97 before the screen-reader pass and is 99 after it. That is not a
 performance optimisation: replacing `next/link` with plain anchors was done because a
@@ -1051,9 +1070,12 @@ third of the three the note above `countDelta` is about: money, counts and rates
 digits and none of them survives another's formatter.
 
 **`Skeleton`'s doc comment said `rows` was "set to the number of rows the page will actually
-render".** All four routes passed 16. They pass their own counts now, and the comment says
-plainly that the overview's number is a height rather than a count, because the overview is
-not a table. An untrue comment is the same defect as an `aria-live` that cannot fire, and this
+render".** All four routes passed 16. The comment was wrong twice over: not only was the
+number not the row count, `rows` is not a count of anything — `rows * 36px` is the height
+the streamed fallback reserves, and it should be the height of the page that replaces it.
+It was measured at Lighthouse's mobile viewport and set per route, which is what took CLS
+from a thing that happened to be zero to a thing that is. See
+[Lighthouse](#lighthouse). An untrue comment is the same defect as an `aria-live` that cannot fire, and this
 build argues that about other people's markup.
 
 **`/customers` closed its masthead with `--color-rule-2`** where the other three pages use
