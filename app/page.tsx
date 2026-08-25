@@ -70,7 +70,21 @@ export default async function Overview() {
         </p>
       </header>
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-6 border-b border-(--color-rule-2) pb-6 lg:grid-cols-4">
+      {/*
+        One figure per row on a phone, two from `sm`, four from `lg`.
+
+        At two columns on a 360px screen the row was misreading three ways at
+        once: "MONTHLY RECURRING REVENUE" wraps to two lines while "ACTIVE
+        CUSTOMERS" does not, so the four values sat on three different
+        baselines; and £3,439,147 needs 141.6px against a column that gives it
+        140px at 360 and 120px at 320, so the largest number on the site spent
+        two thirds of the gutter it was supposed to be separated by.
+
+        Stacking is the fix rather than a smaller type size, because the figure
+        is the reason the row exists and shrinking it to fit a column is
+        answering the wrong question.
+      */}
+      <dl className="mt-6 grid grid-cols-1 gap-x-8 gap-y-5 border-b border-(--color-rule-2) pb-6 sm:grid-cols-2 sm:gap-y-6 lg:grid-cols-4">
         <Figure
           label="Monthly recurring revenue"
           value={money(mrr)}

@@ -148,7 +148,12 @@ export default async function CustomerPage({
         </p>
       </header>
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 border-b border-(--color-rule-2) pb-6 sm:grid-cols-4">
+      {/*
+        The same breakpoints as the overview. These were `sm:grid-cols-4`
+        against the overview's `lg:grid-cols-4`, so between 640 and 1024px the
+        same component was laid out two different ways on two pages.
+      */}
+      <dl className="mt-6 grid grid-cols-1 gap-x-8 gap-y-4 border-b border-(--color-rule-2) pb-6 sm:grid-cols-2 lg:grid-cols-4">
         <Figure
           label="Current MRR"
           value={money(customer.mrr_pence)}
