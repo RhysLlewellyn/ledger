@@ -35,3 +35,7 @@ sweep.err
 # Lighthouse run output. Regenerate rather than commit.
 lh/
 lh-desktop.json
+
+# Design-critique snapshots. Working notes from the design passes, kept locally
+# so /impeccable polish can read the backlog; not part of the build.
+.impeccable/
