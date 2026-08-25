@@ -58,7 +58,11 @@ export function Filters({
   return (
     <form
       method="get"
-      action="/customers"
+      // The fragment is the point of it: submitting lands on the rows rather
+      // than at the top of the document. On a phone this panel is most of a
+      // screen tall, so Apply used to answer the question it was asked by
+      // scrolling away from the answer.
+      action="/customers#results"
       // A <form> only becomes a form landmark when it carries an accessible
       // name. Without one, a screen-reader user cannot jump to the filters by
       // rotor: they walk down from the "Filters" heading every single time,
@@ -86,6 +90,25 @@ export function Filters({
           already applied, ignoring the others in its own group.
         </p>
       )}
+
+      {/*
+        A way past the panel, at the width where the panel is in the way.
+
+        Measured at 390px wide, this form was 1,247px tall and the first
+        customer row sat at 1,622px -- nearly two full screens below the
+        heading, on the page this build most wants read, on the device it is
+        most likely to be opened on. The document's own skip link does not
+        help: it targets `#main`, which is above this.
+
+        Hidden from `sm` up, where the fieldsets are in columns and the whole
+        panel is a few hundred pixels. A tab stop past something nobody has to
+        scroll past is just a tab stop.
+      */}
+      <p className="mt-2 sm:hidden">
+        <a href="#results" className="inline-block py-1 underline underline-offset-4">
+          Skip the filters, go to the table ↓
+        </a>
+      </p>
 
       <input type="hidden" name="sort" value={options.sort} />
       <input type="hidden" name="dir" value={options.direction} />
@@ -128,7 +151,7 @@ export function Filters({
         been pushed below them. Columns pack by content instead, and
         break-inside keeps a fieldset whole.
       */}
-      <div className="mt-4 gap-8 sm:columns-2 lg:columns-3 xl:columns-4 [&>*]:mb-8 [&>*]:break-inside-avoid">
+      <div className="mt-4 columns-2 gap-8 lg:columns-3 xl:columns-4 [&>*]:mb-8 [&>*]:break-inside-avoid">
         <CheckboxGroup
           legend="Plan"
           name="plan"

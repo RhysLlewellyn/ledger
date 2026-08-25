@@ -24,6 +24,7 @@ import type {Query} from '@/metrics/sql.ts'
 import {Scroller} from '../scroller.tsx'
 import {Unavailable} from '../unavailable.tsx'
 
+import {AppliedFilters} from './applied.tsx'
 import {COLUMNS, columnLabel} from './columns.ts'
 import {Filters} from './filters.tsx'
 import {Pagination} from './pagination.tsx'
@@ -215,6 +216,8 @@ export default async function Customers({
         )}
       </div>
 
+      <AppliedFilters options={options} plans={plans} />
+
       <Filters
         options={options}
         plans={plans}
@@ -223,124 +226,133 @@ export default async function Customers({
         bounds={bounds[0]!}
       />
 
-      {total === 0 ? (
-        <EmptyState options={options} plans={plans} />
-      ) : (
-        <>
-          <Scroller label="Customers table" className="mt-4">
-            <table className="w-full min-w-[56rem] border-collapse text-sm">
-              {/*
-                One interpolated string, not a dozen JSX children.
+      {/*
+        Where Apply lands, and where the skip link inside the panel goes.
 
-                This caption used to be written as text interleaved with {' '}
-                separators. It rendered correctly and NVDA read it as
-                "sorted by Mrrdescending. Showing50 of 4,000." A whitespace-only
-                text node standing between two elements is collapsed away when
-                Chrome computes the accessibility text, even though layout keeps
-                it -- so the page looked right and sounded wrong, which is the
-                one kind of defect no automated check catches. Building the
-                sentence in JavaScript puts the spaces inside a text node where
-                nothing can drop them.
-              */}
-              <caption className="sr-only">
-                {`Customers, sorted by ${columnLabel(options.sort)} ` +
-                  `${options.direction === 'asc' ? 'ascending' : 'descending'}. ` +
-                  `Showing ${count(rows.length)} of ${count(total)}.`}
-              </caption>
-              <thead>
-                <tr>
-                  {COLUMNS.map((c, i) => (
-                    <SortHeader
-                      key={c.column}
-                      column={c.column}
-                      label={c.label}
-                      options={options}
-                      numeric={c.numeric}
-                      initial={c.initial}
-                      // The first column pins with its cells, or the label
-                      // scrolls away from the column it names.
-                      pinned={i === 0}
-                    />
-                  ))}
-                </tr>
-              </thead>
-              {/*
-                A hover tint and a pinned name column.
+        `scroll-mt` because a browser drops a fragment target flush against the
+        top of the viewport, which would put the first row hard against the
+        address bar with nothing above it to say what is being looked at.
+      */}
+      <div id="results" className="scroll-mt-4">
+        {total === 0 ? (
+          <EmptyState options={options} plans={plans} />
+        ) : (
+          <>
+            <Scroller label="Customers table" className="mt-4">
+              <table className="w-full min-w-[56rem] border-collapse text-sm">
+                {/*
+                  One interpolated string, not a dozen JSX children.
 
-                Nine columns separated by a 1.31:1 hairline is roughly
-                seventeen hundred pixels of horizontal travel to carry one
-                company from its name to when it was last seen, with nothing
-                helping the eye stay on the row. `--color-paper-2` already
-                existed in the tokens and was unused; it is the quietest
-                possible answer, and it is a surface tint rather than a data
-                colour, so it does not break the rule that colour appears only
-                inside data marks.
+                  This caption used to be written as text interleaved with {' '}
+                  separators. It rendered correctly and NVDA read it as
+                  "sorted by Mrrdescending. Showing50 of 4,000." A whitespace-only
+                  text node standing between two elements is collapsed away when
+                  Chrome computes the accessibility text, even though layout keeps
+                  it -- so the page looked right and sounded wrong, which is the
+                  one kind of defect no automated check catches. Building the
+                  sentence in JavaScript puts the spaces inside a text node where
+                  nothing can drop them.
+                */}
+                <caption className="sr-only">
+                  {`Customers, sorted by ${columnLabel(options.sort)} ` +
+                    `${options.direction === 'asc' ? 'ascending' : 'descending'}. ` +
+                    `Showing ${count(rows.length)} of ${count(total)}.`}
+                </caption>
+                <thead>
+                  <tr>
+                    {COLUMNS.map((c, i) => (
+                      <SortHeader
+                        key={c.column}
+                        column={c.column}
+                        label={c.label}
+                        options={options}
+                        numeric={c.numeric}
+                        initial={c.initial}
+                        // The first column pins with its cells, or the label
+                        // scrolls away from the column it names.
+                        pinned={i === 0}
+                      />
+                    ))}
+                  </tr>
+                </thead>
+                {/*
+                  A hover tint and a pinned name column.
 
-                The name cell pins on scroll, which is what the cohort grid
-                already did for the same problem — the two solved it two
-                different ways, and now they solve it one.
-              */}
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="group border-b border-(--color-rule) hover:bg-(--color-paper-2)"
-                  >
-                    {/*
-                      The name is the link, not the row. A whole-row link
-                      cannot contain the other links a row might need, is
-                      announced as one enormous link, and makes selecting the
-                      text in a cell impossible.
-                    */}
-                    <th
-                      scope="row"
-                      className="sticky left-0 z-10 bg-(--color-paper) py-2 pr-4 text-left font-normal group-hover:bg-(--color-paper-2)"
+                  Nine columns separated by a 1.31:1 hairline is roughly
+                  seventeen hundred pixels of horizontal travel to carry one
+                  company from its name to when it was last seen, with nothing
+                  helping the eye stay on the row. `--color-paper-2` already
+                  existed in the tokens and was unused; it is the quietest
+                  possible answer, and it is a surface tint rather than a data
+                  colour, so it does not break the rule that colour appears only
+                  inside data marks.
+
+                  The name cell pins on scroll, which is what the cohort grid
+                  already did for the same problem — the two solved it two
+                  different ways, and now they solve it one.
+                */}
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="group border-b border-(--color-rule) hover:bg-(--color-paper-2)"
                     >
                       {/*
-                        The row link carries the current view, so the detail
-                        page's own back link can return to it rather than to
-                        an unfiltered table. It is the query string this page
-                        was built from, which is the only description of the
-                        view that exists.
+                        The name is the link, not the row. A whole-row link
+                        cannot contain the other links a row might need, is
+                        announced as one enormous link, and makes selecting the
+                        text in a cell impossible.
                       */}
-                      <a
-                        href={`/customers/${row.slug}${
-                          here ? `?from=${encodeURIComponent(here)}` : ''
-                        }`}
-                        className="underline underline-offset-4"
+                      <th
+                        scope="row"
+                        className="sticky left-0 z-10 bg-(--color-paper) py-2 pr-4 text-left font-normal group-hover:bg-(--color-paper-2)"
                       >
-                        {row.name}
-                      </a>
-                    </th>
-                    <td className="py-2 pr-4">{row.plan_name}</td>
-                    <td className="py-2 pr-4">{humanise(row.status)}</td>
-                    <td className="py-2 pr-4">{countryName(row.country)}</td>
-                    <td className="py-2 pr-4">{humanise(row.acquisition_channel)}</td>
-                    <td data-numeric className="py-2 pr-4 text-right">
-                      {count(row.seats)}
-                    </td>
-                    <td data-numeric className="py-2 pr-4 text-right">
-                      {money(row.mrr_pence)}
-                    </td>
-                    <td data-numeric className="py-2 pr-4 whitespace-nowrap">
-                      {day(row.signed_up_at)}
-                    </td>
-                    <td data-numeric className="py-2 whitespace-nowrap">
-                      {row.last_seen_at ? (
-                        day(row.last_seen_at)
-                      ) : (
-                        <span className="text-(--color-muted)">Never</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Scroller>
+                        {/*
+                          The row link carries the current view, so the detail
+                          page's own back link can return to it rather than to
+                          an unfiltered table. It is the query string this page
+                          was built from, which is the only description of the
+                          view that exists.
+                        */}
+                        <a
+                          href={`/customers/${row.slug}${
+                            here ? `?from=${encodeURIComponent(here)}` : ''
+                          }`}
+                          className="underline underline-offset-4"
+                        >
+                          {row.name}
+                        </a>
+                      </th>
+                      <td className="py-2 pr-4">{row.plan_name}</td>
+                      <td className="py-2 pr-4">{humanise(row.status)}</td>
+                      <td className="py-2 pr-4">{countryName(row.country)}</td>
+                      <td className="py-2 pr-4">{humanise(row.acquisition_channel)}</td>
+                      <td data-numeric className="py-2 pr-4 text-right">
+                        {count(row.seats)}
+                      </td>
+                      <td data-numeric className="py-2 pr-4 text-right">
+                        {money(row.mrr_pence)}
+                      </td>
+                      <td data-numeric className="py-2 pr-4 whitespace-nowrap">
+                        {day(row.signed_up_at)}
+                      </td>
+                      <td data-numeric className="py-2 whitespace-nowrap">
+                        {row.last_seen_at ? (
+                          day(row.last_seen_at)
+                        ) : (
+                          <span className="text-(--color-muted)">Never</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Scroller>
 
-          <Pagination options={options} total={total} />
-        </>
-      )}
+            <Pagination options={options} total={total} />
+          </>
+        )}
+      </div>
     </>
   )
 }
