@@ -1,7 +1,7 @@
 import type {Metadata} from 'next'
 import {cache} from 'react'
 
-import {getSql} from '@/db/index.ts'
+import {run} from '@/db/cached.ts'
 import {count, country as countryName, day, humanise, money} from '@/format.ts'
 import {customerTable, type CustomerRow} from '@/metrics/customers.ts'
 import {
@@ -19,7 +19,6 @@ import {
   parseCustomerParams,
   type RawParams,
 } from '@/metrics/params.ts'
-import type {Query} from '@/metrics/sql.ts'
 
 import {Scroller} from '../scroller.tsx'
 import {Unavailable} from '../unavailable.tsx'
@@ -31,10 +30,6 @@ import {Pagination} from './pagination.tsx'
 import {SortHeader} from './sort-header.tsx'
 
 export const dynamic = 'force-dynamic'
-
-function run<T>(query: Query): Promise<T[]> {
-  return getSql().unsafe(query.text, query.params as never[]) as unknown as Promise<T[]>
-}
 
 /**
  * Everything this page needs, fetched once per request.

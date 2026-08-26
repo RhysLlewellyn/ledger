@@ -1,8 +1,7 @@
-import {getSql} from '@/db/index.ts'
+import {run} from '@/db/cached.ts'
 import {count, countDelta, day, money, movement, percent, percentDelta} from '@/format.ts'
 import {reportBounds} from '@/metrics/facets.ts'
 import {mrrMonthly, type MrrMonth} from '@/metrics/mrr-series.ts'
-import type {Query} from '@/metrics/sql.ts'
 
 import {Figure} from './figure-block.tsx'
 import {Unavailable} from './unavailable.tsx'
@@ -19,10 +18,6 @@ import {MrrChart} from './charts/mrr-chart.tsx'
  * them.
  */
 export const dynamic = 'force-dynamic'
-
-async function run<T>(query: Query): Promise<T[]> {
-  return (await getSql().unsafe(query.text, query.params as never[])) as unknown as T[]
-}
 
 export default async function Overview() {
   let bounds: {first_day: string; last_day: string} | undefined

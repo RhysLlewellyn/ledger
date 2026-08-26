@@ -1,10 +1,9 @@
 import type {Metadata} from 'next'
 
-import {getSql} from '@/db/index.ts'
+import {run} from '@/db/cached.ts'
 import {count, month as monthLabel, percent} from '@/format.ts'
 import {cohortRetention, type CohortCell} from '@/metrics/cohorts.ts'
 import {reportBounds} from '@/metrics/facets.ts'
-import type {Query} from '@/metrics/sql.ts'
 
 import {CohortGrid} from '../charts/cohort-grid.tsx'
 import {Unavailable} from '../unavailable.tsx'
@@ -19,10 +18,6 @@ export const metadata: Metadata = {
 }
 
 const MAX_OFFSET = 23
-
-async function run<T>(query: Query): Promise<T[]> {
-  return (await getSql().unsafe(query.text, query.params as never[])) as unknown as T[]
-}
 
 export default async function Cohorts() {
   let cells: CohortCell[]

@@ -1,7 +1,7 @@
 import type {Metadata} from 'next'
 import {notFound} from 'next/navigation'
 
-import {getSql} from '@/db/index.ts'
+import {run} from '@/db/cached.ts'
 import {
   count,
   country as countryName,
@@ -23,7 +23,6 @@ import {
   type SubscriptionRow,
 } from '@/metrics/customer-detail.ts'
 import {customerHref, parseCustomerParams} from '@/metrics/params.ts'
-import type {Query} from '@/metrics/sql.ts'
 
 import {Figure} from '../../figure-block.tsx'
 import {Scroller} from '../../scroller.tsx'
@@ -32,10 +31,6 @@ import {Unavailable} from '../../unavailable.tsx'
 export const dynamic = 'force-dynamic'
 
 const FEED_LIMIT = 50
-
-function run<T>(query: Query): Promise<T[]> {
-  return getSql().unsafe(query.text, query.params as never[]) as unknown as Promise<T[]>
-}
 
 export async function generateMetadata({
   params,

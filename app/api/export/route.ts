@@ -69,9 +69,11 @@ export async function GET(request: NextRequest) {
     headers: {
       'content-type': 'text/csv; charset=utf-8',
       'content-disposition': `attachment; filename="${filename(options)}"`,
-      // The rows are computed per request from live data; a cached CSV would
-      // hand somebody yesterday's answer to today's filter.
-      'cache-control': 'no-store',
+      // The data is seeded once and does not change, so the same URL can
+      // serve the same file for an hour from the CDN rather than streaming
+      // it out of Postgres again. The key is the full URL, filters included,
+      // so a cached file never answers a different filter.
+      'cache-control': 'public, s-maxage=3600, stale-while-revalidate=86400',
     },
   })
 }

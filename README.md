@@ -265,6 +265,16 @@ quiet period pays a cold start of several hundred milliseconds. That is a proper
 the tier, not of the queries, and any Lighthouse number quoted here will say whether it
 was measured warm.
 
+**Since 26 August the pages read through Next's data cache** (`src/db/cached.ts`), with a
+one-hour window keyed on the statement and its parameters, and the CSV export carries
+`s-maxage=3600`. The dataset is seeded once and never changes, so there was never a reason
+to query it per request; the reason it took a week to do this is that crawlers walking
+the customer table (4,400 requests, 1,600 distinct pages) spent the Neon free tier's
+monthly transfer allowance in six days and Neon paused the project. Every route showed
+its fallback for about an hour until the account was upgraded. The timings in the table
+above are still the per-query numbers, measured against the database directly; a cache
+hit does not touch it. `robots.txt` now keeps crawlers off `/api/export`.
+
 ### The one that mattered: `event (customer_id, occurred_at desc)`
 
 A customer page shows the last fifty things that happened to one account. Before:
