@@ -1,4 +1,5 @@
 import type {Metadata} from 'next'
+import {Analytics} from '@vercel/analytics/next'
 import {IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Serif} from 'next/font/google'
 import './globals.css'
 
@@ -92,6 +93,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
             </p>
           </footer>
         </div>
+        <Analytics />
       </body>
     </html>
   )
