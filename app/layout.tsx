@@ -91,6 +91,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
               plans and their billing history are generated data, and none of them exist. It
               is a demonstration build, not a real product and not client work.
             </p>
+            <p className="mt-3 max-w-prose">Page views are counted by Vercel Web Analytics. No cookies, nothing stored on your device.</p>
           </footer>
         </div>
         <Analytics />
