@@ -1,5 +1,7 @@
 import type {Metadata} from 'next'
 import {notFound} from 'next/navigation'
+import {connection} from 'next/server'
+import {Suspense} from 'react'
 
 import {run} from '@/db/cached.ts'
 import {
@@ -22,13 +24,38 @@ import {
   type MovementRow,
   type SubscriptionRow,
 } from '@/metrics/customer-detail.ts'
-import {customerHref, parseCustomerParams} from '@/metrics/params.ts'
-
 import {Figure} from '../../figure-block.tsx'
 import {Scroller} from '../../scroller.tsx'
 import {Unavailable} from '../../unavailable.tsx'
 
-export const dynamic = 'force-dynamic'
+import {BackAnchor, BackLink} from './back-link.tsx'
+
+/*
+  Rendered once per slug and held by the CDN for a day.
+
+  This was `force-dynamic`, which made every request a function invocation
+  and a render, and a crawler that ignores robots.txt walked all four
+  thousand of these pages at a thousand an hour — 98% of the account's Fast
+  Origin Transfer and all of its Fluid CPU for the month. The query cache in
+  `src/db/cached.ts` had already stopped that reaching Postgres; this stops it
+  reaching the function at all.
+
+  The data is seeded once and does not change, so a day is conservative. The
+  one thing that used to make this page per-request was the `?from=` back
+  link, which now reads the query string in the browser (`back-link.tsx`).
+*/
+export const revalidate = 86400
+
+/**
+ * No slugs at build time; every page is rendered on its first request and
+ * kept. Building four thousand pages would need the database during
+ * `next build`, which `src/db/index.ts` explains is the one thing a deploy
+ * must not need. Declaring the (empty) list is what tells Next the route is
+ * cacheable rather than per-request.
+ */
+export function generateStaticParams(): {slug: string}[] {
+  return []
+}
 
 const FEED_LIMIT = 50
 
@@ -53,37 +80,14 @@ export async function generateMetadata({
   }
 }
 
-export default async function CustomerPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{slug: string}>
-  searchParams: Promise<{from?: string | string[]}>
-}) {
+export default async function CustomerPage({params}: {params: Promise<{slug: string}>}) {
   const {slug} = await params
-
-  /*
-    The view this page was opened from, so going back returns to it.
-
-    "← All customers" was a bare `/customers`, so filtering four thousand rows
-    down to a hundred and seventeen, opening one of them and pressing the
-    page's own back link threw the filters away and started again. The state
-    was in the URL the whole time and the interface discarded it.
-
-    The table passes its own query string on every row link, and it is read
-    back here rather than trusted: it goes through the same parser the table
-    uses and comes out as a canonical query string, so a hand-edited `from`
-    cannot become an open redirect or a nonsense view. Anything unparseable
-    quietly becomes plain `/customers`.
-  */
-  const rawFrom = (await searchParams).from
-  const from = Array.isArray(rawFrom) ? rawFrom[0] : rawFrom
-  const backHref = `/customers${safeFrom(from)}`
 
   let customer: CustomerDetail | undefined
   try {
     ;[customer] = await run<CustomerDetail>(customerBySlug(slug))
   } catch {
+    await uncached()
     return <Unavailable title="Customer" retry={`/customers/${slug}`} />
   }
   // A slug that matches nothing is a 404 and not an outage. Only a thrown
@@ -100,6 +104,7 @@ export default async function CustomerPage({
       run<EventRow>(customerEventFeed(customer.id, FEED_LIMIT)),
     ])
   } catch {
+    await uncached()
     return <Unavailable title={customer.name} retry={`/customers/${slug}`} />
   }
 
@@ -120,12 +125,20 @@ export default async function CustomerPage({
   return (
     <>
       <p className="text-sm">
-        <a
-          href={backHref}
-          className="inline-block py-1 underline underline-offset-4"
-        >
-          ← All customers
-        </a>
+        {/*
+          The view this page was opened from, so going back returns to it.
+
+          "← All customers" was a bare `/customers`, so filtering four thousand
+          rows down to a hundred and seventeen, opening one of them and
+          pressing the page's own back link threw the filters away and started
+          again. The state was in the URL the whole time and the interface
+          discarded it. `useSearchParams` needs a Suspense boundary in a
+          cached page; the fallback is the same anchor, pointing at the
+          unfiltered table, which is what the server renders for everybody.
+        */}
+        <Suspense fallback={<BackAnchor href="/customers" />}>
+          <BackLink />
+        </Suspense>
       </p>
 
       <header className="mt-4 border-b border-(--color-ink) pb-4">
@@ -388,21 +401,14 @@ function describe(metadata: Record<string, unknown>): string {
 }
 
 /**
- * A `from` query string, re-derived rather than trusted.
+ * Keep this render out of the cache.
  *
- * It is parsed with the table's own parser and re-serialised with the table's
- * own writer, so whatever comes back is a URL the customers page would have
- * produced itself. A hand-edited value cannot smuggle in a path, a host, or a
- * parameter the table does not understand — the worst it can do is describe an
- * unfiltered table.
+ * A cached page is a page that is cached whatever it says, and the outage
+ * fallback would otherwise be held for a day after the database came back.
+ * `connection()` is a dynamic API: calling it makes this one request render
+ * dynamically instead of being stored, so the next visitor asks Postgres
+ * again rather than reading a stale "not answering" from the CDN.
  */
-function safeFrom(from: string | undefined): string {
-  if (!from) return ''
-  const params = new URLSearchParams(from.startsWith('?') ? from.slice(1) : from)
-  const raw: Record<string, string | string[]> = {}
-  for (const key of new Set(params.keys())) {
-    const all = params.getAll(key)
-    raw[key] = all.length > 1 ? all : all[0]!
-  }
-  return customerHref(parseCustomerParams(raw))
+async function uncached(): Promise<void> {
+  await connection()
 }

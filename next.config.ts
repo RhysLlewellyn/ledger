@@ -29,6 +29,15 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: [{key: 'X-Robots-Tag', value: 'index, follow'}],
       },
+      {
+        /**
+         * The rule above would otherwise invite indexing of the CSV export,
+         * which `robots.txt` disallows. A later match on the same header key
+         * wins, so this narrows the blanket rule rather than fighting it.
+         */
+        source: '/api/:path*',
+        headers: [{key: 'X-Robots-Tag', value: 'noindex, nofollow'}],
+      },
     ]
   },
 }
